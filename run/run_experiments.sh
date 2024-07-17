@@ -2,6 +2,12 @@
 
 # Run this script from the project root dir.
 
+environment_setup="
+module load Anaconda3
+module load CUDA/12.0.0
+source activate LGI-env
+"
+
 function run_repeats {
     dataset=$1
     cfg_suffix=$2
@@ -25,8 +31,15 @@ function run_repeats {
 
     # Run each repeat as a separate job
     for SEED in {0..5}; do
-        script="sbatch --job-name ${cfg_suffix}-${dataset} ${slurm_directive} ${main} --repeat 1 seed ${SEED} ${common_params}"
-        echo $script
+        script=<<EOT
+        #!/bin/bash
+        ${slurm_directive}
+        #SBATCH --job-name=${cfg_suffix}-${dataset}
+        ${environment_setup}
+        ${main} --repeat 1 seed ${SEED} ${common_params}
+        EOT
+        echo job name ${cfg_suffix}-${dataset}: seed ${SEED}
+        echo ${main} --repeat 1 seed ${SEED} ${common_params}
         eval $script
     done
 }
