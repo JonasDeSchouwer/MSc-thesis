@@ -70,3 +70,11 @@ def set_cfg_gt(cfg):
     cfg.gt.bigbird.block_size = 3
 
     cfg.gt.bigbird.layer_norm_eps = 1e-6
+
+    cfg.gt.sparse = CN()
+
+    cfg.gt.sparse.kq_dim = None
+
+    cfg.gt.sparse.val_dim = None
+
+    cfg.gt.sparse.k = 10

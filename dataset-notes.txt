@@ -1,0 +1,188 @@
+dataset entries:
+- format: (PyG-Actor, PyG-GNNBenchmarkDataset, PyG-MalNetTiny, PyG-Planetoid, PyG-TUDataset, PyG-WebKB, PyG-WikipediaNetwork, PyG-ZINC, PyG-AQSOL, PyG-VOCSuperpixels, PyG-COCOSuperpixels, OGB, PyG)
+// maybe also PyG-CitationFull
+- name: (...)
+- task: (graph, node)
+- task_type: (classification, regression, classification_multilabel)
+- transductive: (False, True)
+- node_encoder: (False, True)
+- node_encoder_name: (
+    // dataset-specific encoding (DSE)
+    Atom, ASTNode, PPANode, TypeDictNode, VOCNode, LinearNode,
+    // positional encoding (PE)
+    LapPE, RWSE, HKdiagSE, ElstaticSE, SignNet, EquivStableLapPE, GraphormerBias,
+    // DSE+PSE
+    // DSE+LapPE+RWSE
+    // DSE+SignNet+RWSE
+    // DSE+GraphormerBias+LapPE
+    // DSE+GraphormerBias+RWSE
+)
+- node_encoder_bn: (False, True)
+- edge_encoder: (False, True)
+- edge_encoder_name: (LinearEdge, ASTEdge, DummyEdge, example, PPAEdge, TypeDictEdge, VOCEdge)
+- edge_encoder_bn: (False, True)
+
+
+--- FILE: master_loader.py ---
+
+Master loader that controls loading of all datasets, overshadowing execution of any default GraphGym dataset loader. Default GraphGym dataset loader are instead called from this function, the format keywords `PyG` and `OGB` are
+reserved for these default GraphGym loaders.
+Custom transforms and dataset splitting is applied to each loaded dataset.
+
+
+// first, set the variable 'dataset':
+if format.startswith('PyG-'):
+    pyg_dataset_id = format.split('-', 1)[1]
+    // load dataset from torch_geometric according to pyg_dataset_id
+    name is for sub_datasets, e.g. Penn94, wisconsin or crocodile
+elif format == 'PyG':
+    dataset = load_pyg(name, dataset_dir)
+elif format == 'OGB':
+    // load dataset based on what the 'name' starts with:
+        ogbg, PCQM4Mv2-, peptides-, ogbl-, PCQM4Mv2Contact-
+
+// do task specific preprocessing
+pre_transform_in_memory(dataset, partial(task_specific_preprocessing, cfg=cfg))
+
+// check which positional encodings are enabled
+pe_enabled_list = []
+for key, pecfg in cfg.items():
+    if key.startswith('posenc_') and pecfg.enable:
+        pe_name = key.split('_', 1)[1]
+        pe_enabled_list.append(pe_name)
+
+// compute positional encodings
+if pe_enabled_list:
+    is_undirected = all(d.is_undirected() for d in dataset[:10])    // estimate if undirected
+
+    pre_transform_in_memory(dataset,
+                            partial(compute_posenc_stats,
+                                    pe_types=pe_enabled_list,
+                                    is_undirected=is_undirected,
+                                    cfg=cfg),
+                            show_progress=True
+                            )
+
+// Set standard dataset train/val/test splits, if possible
+// these are only relevant if split_mode == "standard"
+// if task=="node": set the dataset.data attributes "train_mask", "val_mask", "test_mask"
+// if task =="graph", set the dataset.data attributes "train_graph_index", "val_graph_index", "test_graph_index"
+if hasattr(dataset, 'split_idxs'):
+    set_dataset_splits(dataset, dataset.split_idxs)
+    delattr(dataset, 'split_idxs')
+
+// prepare the splits based on cfg.dataset.split_mode:
+// standard, random, 'cv-...', fixed, sliced
+prepare_splits(datasets)
+
+
+
+--- PyG-Actor ---
+
+
+--- PyG-GNNBenchmarkDataset ---
+
+
+--- PyG-MalNetTiny ---
+
+
+--- PyG-Planetoid ---
+
+
+--- PyG-TUDataset ---
+
+
+--- PyG-WebKB ---
+
+
+--- PyG-WikipediaNetwork ---
+
+
+--- PyG-ZINC ---
+
+
+--- PyG-AQSOL ---
+
+
+--- PyG-VOCSuperpixels ---
+
+
+--- PyG-COCOSuperpixels ---
+
+
+--- PyG, name: Cora, CiteSeer, PubMed ---
+
+Duplicate of PyG-Planetoid?
+
+
+--- PyG, name: TU_... ---
+
+Duplicate of PyG-TUDataset?
+
+
+--- PyG, name: Karate ---
+
+
+--- PyG, name: Coauthor-CS ---
+
+
+--- PyG, name: Coauthor-Physics ---
+
+
+--- PyG, name: Amazon-Computers ---
+
+
+--- PyG, name: Amazon-Photo ---
+
+
+--- PyG, name: MNIST ---
+
+
+--- PyG, name: PPI ---
+
+
+--- PyG, name: QM7b ---
+
+
+--- OGB, name: ogbg-ppa ---
+
+
+--- OGB, name: ogbg-code2 ---
+
+
+--- OGB, name: ogbg-PCQM4Mv2 ---
+
+
+--- OGB, name: PCQM4Mv2-full ---
+
+
+--- OGB, name: PCQM4Mv2-subset ---
+
+
+--- OGB, name: PCQM4Mv2-inference ---
+
+
+--- OGB, name: peptides-functional ---
+
+
+--- OGB, name: peptides-structural ---
+
+
+--- OGB, name: ogbl-... ---
+
+Link property prediction datasets from https://ogb.stanford.edu/docs/linkprop/
+Possible names: 
+- ogbl-ppa
+- ogbl-collab
+- ogbl-ddi
+- ogbl-citation2
+- ogbl-wikikg2
+- ogbl-biokg
+- ogbl-vessel
+
+
+--- OGB, name: PCQM4Mv2Contact-... ---
+
+Possible names:
+- PCQM4Mv2Contact-shuffle
+- PCQM4Mv2Contact-num_atoms

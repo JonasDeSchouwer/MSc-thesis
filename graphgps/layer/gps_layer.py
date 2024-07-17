@@ -11,6 +11,7 @@ from torch_geometric.utils import to_dense_batch
 from graphgps.layer.bigbird_layer import SingleBigBirdLayer
 from graphgps.layer.gatedgcn_layer import GatedGCNLayer
 from graphgps.layer.gine_conv_layer import GINEConvESLapPE
+from graphgps.layer.sparse_attention_layer import SparseAttention
 
 
 class GPSLayer(nn.Module):
@@ -21,7 +22,7 @@ class GPSLayer(nn.Module):
                  local_gnn_type, global_model_type, num_heads, act='relu',
                  pna_degrees=None, equivstable_pe=False, dropout=0.0,
                  attn_dropout=0.0, layer_norm=False, batch_norm=True,
-                 bigbird_cfg=None, log_attn_weights=False):
+                 bigbird_cfg=None, sparse_cfg=None, log_attn_weights=False):
         super().__init__()
 
         self.dim_h = dim_h
@@ -117,6 +118,12 @@ class GPSLayer(nn.Module):
             bigbird_cfg.n_heads = num_heads
             bigbird_cfg.dropout = dropout
             self.self_attn = SingleBigBirdLayer(bigbird_cfg)
+        elif global_model_type == "SparseAttention":
+            if sparse_cfg.kq_dim is None:
+                sparse_cfg.kq_dim = dim_h
+            if sparse_cfg.val_dim is None:
+                sparse_cfg.val_dim = dim_h
+            self.self_attn = SparseAttention(dim=dim_h, kq_dim=sparse_cfg.kq_dim, val_dim=sparse_cfg.val_dim, num_heads=num_heads, k=sparse_cfg.k)
         else:
             raise ValueError(f"Unsupported global x-former model: "
                              f"{global_model_type}")
@@ -153,6 +160,12 @@ class GPSLayer(nn.Module):
         self.ff_dropout2 = nn.Dropout(dropout)
 
     def forward(self, batch):
+        # batch.num_graphs
+        # batch.batch: [N_total] -> each entry is which graph that node belongs to
+        # batch.x: [N_total, F_node]
+        # batch.edge_index: [2, E]
+        # batch.edge_attr: [E, F_edge]
+
         h = batch.x
         h_in1 = h  # for first residual connection
 
@@ -196,6 +209,8 @@ class GPSLayer(nn.Module):
 
         # Multi-head attention.
         if self.self_attn is not None:
+            # h_dense: [num_graphs, N_max, F_node]
+            # mask: [num_graphs, N_max] -> each entry is True if it is a 'real' node, and False if it is a 'padding' node
             h_dense, mask = to_dense_batch(h, batch.batch)
             if self.global_model_type == 'Transformer':
                 h_attn = self._sa_block(h_dense, None, ~mask)[mask]
@@ -206,6 +221,8 @@ class GPSLayer(nn.Module):
                 h_attn = self.self_attn(h_dense, mask=mask)[mask]
             elif self.global_model_type == 'BigBird':
                 h_attn = self.self_attn(h_dense, attention_mask=mask)
+            elif self.global_model_type == 'SparseAttention':
+                h_attn = self.self_attn(h_dense)[mask]
             else:
                 raise RuntimeError(f"Unexpected {self.global_model_type}")
 

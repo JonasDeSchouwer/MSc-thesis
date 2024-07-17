@@ -1,0 +1,190 @@
+to find models: search for 'register_network'
+
+--- BigBird ---
+
+BigBird without edge features.
+This model disregards edge features and runs a linear transformer over a set of node features only.
+BigBird applies random sparse attention to the input sequence - the longer the sequence the closer it is to O(N)
+https://arxiv.org/abs/2007.14062
+
+# pre message passing layers
+if cfg.gnn.layers_pre_mp > 0:
+    self.pre_mp = GNNPreMP(
+        dim_in, cfg.gnn.dim_inner, cfg.gnn.layers_pre_mp)
+
+cfg.gt.bigbird.layers = cfg.gt.layers
+cfg.gt.bigbird.n_heads = cfg.gt.n_heads
+cfg.gt.bigbird.dim_hidden = cfg.gt.dim_hidden
+cfg.gt.bigbird.dropout = cfg.gt.dropout
+self.trf = BackboneBigBird(
+    config=cfg.gt.bigbird,
+)
+
+# post message passing layers
+self.post_mp = GNNHead(dim_in=cfg.gnn.dim_inner, dim_out=dim_out)
+
+Note: BackboneBigBird will also use the following entries in cfg.gt.bigbird:
+- attention_type (from "block_sparse", "original_full")
+- block_size
+- num_random_blocks
+
+
+
+--- custom_gnn ---
+
+GNN model that customizes the torch_geometric.graphgym.models.gnn.GNN to support specific handling of new conv layers.
+The supported 'new conv layers': gatedgcnconv, gineconv
+
+
+# pre message passing layers
+if cfg.gnn.layers_pre_mp > 0:
+    self.pre_mp = GNNPreMP(
+        dim_in, cfg.gnn.dim_inner, cfg.gnn.layers_pre_mp)
+
+conv_model = self.build_conv_model(cfg.gnn.layer_type)
+layers = []
+for _ in range(cfg.gnn.layers_mp):
+    layers.append(conv_model(dim_in,
+                                dim_in,
+                                dropout=cfg.gnn.dropout,
+                                residual=cfg.gnn.residual))
+
+# post message passing layers
+self.post_mp = GNNHead(dim_in=cfg.gnn.dim_inner, dim_out=dim_out)
+
+
+--- example ---
+
+Supported conv_models: GCN, GAT, GraphSage
+
+conv_model = self.build_conv_model(model_type)
+self.convs = nn.ModuleList()
+for _ in range(num_layers):
+    self.convs.append(conv_model(dim_in, dim_in))
+self.post_mp = GNNHead(dim_in=dim_in, dim_out=dim_out)
+
+
+--- GPSModel ---
+
+General-Powerful-Scalable graph transformer.
+https://arxiv.org/abs/2205.12454
+
+Will use the following entries in cfg.gt:
+- dim_hidden
+- layer_type -> LocalGnnType+GlobalModelType
+- n_heads
+- act
+- pna_degrees
+- dropout
+- attn_dropout
+- layer_norm
+- batch_norm
+- bigbird_cfg
+
+local_gnn_type: None, GCN, GIN, GENConv, GINE, GAT, PNA, CustomGatedGCN
+global_model_type: None, Transformer, BiasedTransformer, Performer, BigBird
+
+
+# pre message passing layers
+if cfg.gnn.layers_pre_mp > 0:
+    self.pre_mp = GNNPreMP(
+        dim_in, cfg.gnn.dim_inner, cfg.gnn.layers_pre_mp)
+
+Note: asserts that cfg.gt.dim_hidden == cfg.gnn.dim_inner == dim_in
+Note: expects cfg.gt.layer_type == LocalGnnType+GlobalModelType
+
+layers = []
+for _ in range(cfg.gt.layers):
+    layers.append(GPSLayer(
+        dim_h=cfg.gt.dim_hidden,
+        local_gnn_type=local_gnn_type,
+        global_model_type=global_model_type,
+        num_heads=cfg.gt.n_heads,
+        act=cfg.gnn.act,
+        pna_degrees=cfg.gt.pna_degrees,
+        equivstable_pe=cfg.posenc_EquivStableLapPE.enable,
+        dropout=cfg.gt.dropout,
+        attn_dropout=cfg.gt.attn_dropout,
+        layer_norm=cfg.gt.layer_norm,
+        batch_norm=cfg.gt.batch_norm,
+        bigbird_cfg=cfg.gt.bigbird,
+        log_attn_weights=cfg.train.mode == 'log-attn-weights',
+    ))
+
+# post message passing layers
+self.post_mp = GNNHead(dim_in=cfg.gnn.dim_inner, dim_out=dim_out)
+
+
+- GPSLayer -
+
+Local MPNN + full graph attention x-former layer.
+
+self.local_model = ... (based on local_gnn_type)
+self.self_attn = ... (based on global_model_type)
+
+self.norm1_local = BatchNorm1d/LayerNorm
+self.norm1_attn = BatchNorm1d/LayerNorm
+self.dropout_local = nn.Dropout(dropout)
+self.dropout_attn = nn.Dropout(dropout)
+self.ff_linear1 = nn.Linear(dim_h, dim_h * 2)
+self.ff_linear2 = nn.Linear(dim_h * 2, dim_h)
+self.act_fn_ff = self.activation()
+self.norm2 = BatchNorm1d/LayerNorm
+self.ff_dropout1 = nn.Dropout(dropout)
+self.ff_dropout2 = nn.Dropout(dropout)
+
+
+--- Graphormer ---
+Graphormer port to GraphGPS. https://arxiv.org/abs/2106.05234
+Do transformers really perform badly for graph representation? (NeurIPS2021)
+
+Will use the following entries from cfg.graphormer:
+- embed_dim
+- num_heads
+- dropout
+- attention_dropout
+- mlp_dropout
+
+# pre message passing layers
+if cfg.gnn.layers_pre_mp > 0:
+    self.pre_mp = GNNPreMP(
+        dim_in, cfg.gnn.dim_inner, cfg.gnn.layers_pre_mp)
+
+Note: asserts that cfg.graphormer.embed_dim == cfg.gnn.dim_inner == dim_in
+
+for _ in range(cfg.graphormer.num_layers):
+    layers.append(GraphormerLayer(
+        embed_dim=cfg.graphormer.embed_dim,
+        num_heads=cfg.graphormer.num_heads,
+        dropout=cfg.graphormer.dropout,
+        attention_dropout=cfg.graphormer.attention_dropout,
+        mlp_dropout=cfg.graphormer.mlp_dropout
+    ))
+
+# post message passing layers
+self.post_mp = GNNHead(dim_in=cfg.gnn.dim_inner, dim_out=dim_out)
+
+
+--- Performer ---
+
+Performer without edge features. This model disregards edge features and runs a linear transformer over a set of node features only.
+https://arxiv.org/abs/2009.14794
+
+Will use the following entries from cfg.gt:
+- dim_hidden
+- layers
+- n_heads
+
+if cfg.gnn.layers_pre_mp > 0:
+    self.pre_mp = GNNPreMP(
+        dim_in, cfg.gnn.dim_inner, cfg.gnn.layers_pre_mp)
+
+Note: asserts that cfg.gt.dim_hidden == cfg.gnn.dim_inner == dim_in
+
+
+--- SANTransformer ---
+
+Spectral Attention Network (SAN) Graph Transformer.
+https://arxiv.org/abs/2106.03893
+
+To do

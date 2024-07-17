@@ -59,14 +59,18 @@ model:
   edge_decoding: dot
   graph_pooling: add
 gt:
-  layer_type: GINE+BigBird
+  layer_type: GINE+SparseAttention
   layers: 3
   n_heads: 8
   dim_hidden: 56  # `gt.dim_hidden` must match `gnn.dim_inner`
   dropout: 0.0
-  attn_dropout: 0.0  # BigBird does not have attention dropout
+  attn_dropout: 0.0  # SparseAttention does not have dropout of attention weights
   layer_norm: False
   batch_norm: True
+  sparse:
+    kq_dim: 56
+    val_dim: 56
+    k: 20
 gnn:
   head: san_graph
   layers_pre_mp: 0

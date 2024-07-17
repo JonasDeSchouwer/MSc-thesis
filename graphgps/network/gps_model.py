@@ -95,6 +95,7 @@ class GPSModel(torch.nn.Module):
                 layer_norm=cfg.gt.layer_norm,
                 batch_norm=cfg.gt.batch_norm,
                 bigbird_cfg=cfg.gt.bigbird,
+                sparse_cfg=cfg.gt.sparse,
                 log_attn_weights=cfg.train.mode == 'log-attn-weights',
             ))
         self.layers = torch.nn.Sequential(*layers)
