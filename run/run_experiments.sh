@@ -31,16 +31,16 @@ function run_repeats {
 
     # Run each repeat as a separate job
     for SEED in {0..5}; do
-        script=<<EOT
+        echo job name ${cfg_suffix}-${dataset}: seed ${SEED}
+        echo ${main} --repeat 1 seed ${SEED} ${common_params}
+        
+        sbatch <<EOT
         #!/bin/bash
         ${slurm_directive}
         #SBATCH --job-name=${cfg_suffix}-${dataset}
         ${environment_setup}
         ${main} --repeat 1 seed ${SEED} ${common_params}
-        EOT
-        echo job name ${cfg_suffix}-${dataset}: seed ${SEED}
-        echo ${main} --repeat 1 seed ${SEED} ${common_params}
-        eval $script
+EOT
     done
 }
 
