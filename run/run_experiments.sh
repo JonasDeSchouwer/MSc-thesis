@@ -29,13 +29,16 @@ function run_repeats {
     echo "Run program: ${main}"
     echo "  output dir: ${out_dir}"
 
+    time=`date +%m.%d-%H:%M`
     # Run each repeat as a separate job
     for SEED in {0..5}; do
         echo job name ${cfg_suffix}-${dataset}: seed ${SEED}
         echo ${main} --repeat 1 seed ${SEED} ${common_params}
-        
+
         sbatch <<EOT
-        #!/bin/bash
+#!/bin/bash
+        #SBATCH --output="output/${time}-%x-%j.out"
+        #SBATCH --error="output/${time}-%x-%j.out"
         ${slurm_directive}
         #SBATCH --job-name=${cfg_suffix}-${dataset}
         ${environment_setup}
@@ -62,7 +65,12 @@ done
 cfg_dir="configs/GPS"
 
 DATASET="mnist"
-slurm_directive="--partition=medium --mem=16G --gres=gpu:1 --cpus-per-task=4"
+slurm_directive="
+#SBATCH --partition=medium
+#SBATCH --mem=16G
+#SBATCH --gres=gpu:1
+#SBATCH --cpus-per-task=4
+"
 
 run_repeats ${DATASET} GCN "name_tag GCNwLapPE"
 run_repeats ${DATASET} GPS-Transformer "name_tag GPSwLapPE.GINE+Transformer"
