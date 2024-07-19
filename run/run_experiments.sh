@@ -31,7 +31,7 @@ function run_repeats {
 
     time=`date +%m.%d-%H:%M`
     # Run each repeat as a separate job
-    for SEED in {0..5}; do
+    for SEED in {0..4}; do
         echo job name ${cfg_suffix}-${dataset}: seed ${SEED}
         echo ${main} --repeat 1 seed ${SEED} ${common_params}
 
@@ -71,14 +71,17 @@ slurm_directive="
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=4
 "
-
 run_repeats ${DATASET} GCN "name_tag GCNwLapPE"
 run_repeats ${DATASET} GPS-Transformer "name_tag GPSwLapPE.GINE+Transformer"
 run_repeats ${DATASET} GPS-Performer "name_tag GPSwLapPE.GINE+Performer"
 run_repeats ${DATASET} GPS-SparseAttention "name_tag GPSwLapPE.GINE+SparseMHA"
 
 DATASET="malnettiny"
-slurm_directive="--partition=medium --mem=60G --gres=gpu:1"
+slurm_directive="
+#SBATCH --partition=medium
+#SBATCH --mem=60G
+#SBATCH --gres=gpu:1
+"
 run_repeats ${DATASET} GCN "name_tag GCN"
 run_repeats ${DATASET} GPS-Transformer "name_tag GPS.CustomGatedGCN+Transformer"
 run_repeats ${DATASET} GPS-Performer "name_tag GPS.CustomGatedGCN+Performer"
