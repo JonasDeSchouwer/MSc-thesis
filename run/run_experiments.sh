@@ -33,13 +33,13 @@ function run_repeats {
     for SEED in {0..5}; do
         echo job name ${cfg_suffix}-${dataset}: seed ${SEED}
         echo ${main} --repeat 1 seed ${SEED} ${common_params}
-        
+
         sbatch <<EOT
-        #!/bin/bash
-        ${slurm_directive}
-        #SBATCH --job-name=${cfg_suffix}-${dataset}
-        ${environment_setup}
-        ${main} --repeat 1 seed ${SEED} ${common_params}
+#!/bin/bash
+${slurm_directive}
+#SBATCH --job-name=${cfg_suffix}-${dataset}
+${environment_setup}
+${main} --repeat 1 seed ${SEED} ${common_params}
 EOT
     done
 }
@@ -68,6 +68,13 @@ run_repeats ${DATASET} GCN "name_tag GCNwLapPE"
 run_repeats ${DATASET} GPS-Transformer "name_tag GPSwLapPE.GINE+Transformer"
 run_repeats ${DATASET} GPS-Performer "name_tag GPSwLapPE.GINE+Performer"
 run_repeats ${DATASET} GPS-SparseAttention "name_tag GPSwLapPE.GINE+SparseMHA"
+
+DATASET="malnettiny"
+slurm_directive="--partition=medium --mem=60G --gres=gpu:1"
+run_repeats ${DATASET} GCN "name_tag GCN"
+run_repeats ${DATASET} GPS-Transformer "name_tag GPS.CustomGatedGCN+Transformer"
+run_repeats ${DATASET} GPS-Performer "name_tag GPS.CustomGatedGCN+Performer"
+run_repeats ${DATASET} GPS-SparseAttention "name_tag GPS.CustomGatedGCN+SparseMHA"
 
 
 # DATASET="zinc"

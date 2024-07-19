@@ -2,7 +2,7 @@ dataset entries:
 - format: (PyG-Actor, PyG-GNNBenchmarkDataset, PyG-MalNetTiny, PyG-Planetoid, PyG-TUDataset, PyG-WebKB, PyG-WikipediaNetwork, PyG-ZINC, PyG-AQSOL, PyG-VOCSuperpixels, PyG-COCOSuperpixels, OGB, PyG)
 // maybe also PyG-CitationFull
 - name: (...)
-- task: (graph, node)
+- task: (graph, node, edge, link_pred)
 - task_type: (classification, regression, classification_multilabel)
 - transductive: (False, True)
 - node_encoder: (False, True)

@@ -41,6 +41,8 @@ gt:
   attn_dropout: 0.0
   layer_norm: False
   batch_norm: True
+  sparse:
+    k: 10
 gnn:
   layers_pre_mp: 0
   layers_post_mp: 3
