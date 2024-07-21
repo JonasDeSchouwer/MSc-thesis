@@ -66,7 +66,7 @@ class SparseAttention(nn.Module):
         # [**, num_heads, N, k]
         ndims = len(full_attention_weights.shape)
         assert ndims in [3,4]
-        nearest_key_indices = (-full_attention_weights).argKmin(self.k, dim=ndims-2)
+        nearest_key_indices = (-full_attention_weights).argKmin(self.k, dim=ndims-1)
 
         return nearest_key_indices
 
