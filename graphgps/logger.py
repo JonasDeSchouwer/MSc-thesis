@@ -113,6 +113,7 @@ class CustomLogger(Logger):
             res['auc'] = reformat(auroc(pred_score.to(torch.device(cfg.device)),
                                         true.to(torch.device(cfg.device)).squeeze(),
                                         num_classes=pred_score.shape[1],
+                                        task=self.task_type,
                                         average='macro'))
 
             if self.test_scores:
@@ -142,6 +143,7 @@ class CustomLogger(Logger):
         auroc = MetricWrapper(metric='auroc',
                               target_nan_mask='ignore-mean-label',
                               pos_label=1,
+                              task=self.task_type,
                               cast_to_int=True)
         results = {
             'accuracy': reformat(acc(pred_score, true)),
