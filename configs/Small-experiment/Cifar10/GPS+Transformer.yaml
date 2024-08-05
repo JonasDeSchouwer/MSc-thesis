@@ -16,7 +16,7 @@ dataset:
   edge_encoder_name: LinearEdge
   edge_encoder_bn: False
 posenc_EquivStableLapPE:
-  enable: False
+  enable: True
   eigen:
     laplacian_norm: none
     eigvec_norm: L2
