@@ -27,13 +27,10 @@ conda install pytorch=1.10 torchvision torchaudio -c pytorch -c nvidia
 conda install pyg=2.0.4 -c pyg -c conda-forge
 
 # RDKit is required for OGB-LSC PCQM4Mv2 and datasets derived from it.  
-conda install openbabel fsspec rdkit -c conda-forge
+conda install openbabel -c conda-forge
 
-pip install torchmetrics
-pip install performer-pytorch
-pip install ogb
-pip install tensorboardX
-pip install wandb
+pip install fsspec rdkit
+pip install torchmetrics performer-pytorch ogb tensorboardX wandb
 
 conda clean --all
 ```
