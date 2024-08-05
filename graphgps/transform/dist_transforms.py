@@ -168,7 +168,7 @@ def laplacian_matrix(senders: np.ndarray, receivers: np.ndarray,
   w = weights.tolist() + [0.0] * n
   adj = sp.sparse.csc_matrix((w, (s, t)), shape=(n, n))
   lap = adj * -1.0
-  lap.setdiag(sp.ravel(adj.sum(axis=0)))
+  lap.setdiag(np.ravel(adj.sum(axis=0)))
   return lap
   
 
