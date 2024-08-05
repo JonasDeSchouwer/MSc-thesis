@@ -21,20 +21,15 @@ Specifically *PyG v2.2* is required.
 conda create -n graphgps python=3.10
 conda activate graphgps
 
-conda install pytorch=1.13 torchvision torchaudio pytorch-cuda=11.7 -c pytorch -c nvidia
-conda install pyg=2.2 -c pyg -c conda-forge
-pip install pyg-lib -f https://data.pyg.org/whl/torch-1.13.0+cu117.html
+pip install torch==2.1.0+cu121 torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+pip install torch_geometric
+pip install pyg_lib==0.3.1 torch_scatter torch_sparse torch_cluster torch_spline_conv -f https://data.pyg.org/whl/torch-2.1.0+cu121.html
+pip install pytorch_lightning ogb
 
-# RDKit is required for OGB-LSC PCQM4Mv2 and datasets derived from it.  
-conda install openbabel fsspec rdkit -c conda-forge
-
-pip install pytorch-lightning yacs torchmetrics
-pip install performer-pytorch
-pip install tensorboardX
-pip install ogb
-pip install wandb
-
-conda clean --all
+conda install openbabel -c conda-forge
+pip install fsspec rdkit yacs
+pip install performer-pytorch tensorboardX wandb
+pip install pykeops
 ```
 
 
