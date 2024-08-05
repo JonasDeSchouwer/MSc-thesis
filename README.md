@@ -30,7 +30,7 @@ conda install pyg=2.0.4 -c pyg -c conda-forge
 conda install openbabel -c conda-forge
 
 pip install fsspec rdkit
-pip install torchmetrics performer-pytorch ogb tensorboardX wandb
+pip install torchmetrics performer-pytorch ogb tensorboardX wandb pykeops
 
 conda clean --all
 ```
