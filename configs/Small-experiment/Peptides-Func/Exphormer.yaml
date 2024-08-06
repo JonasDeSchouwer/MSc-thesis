@@ -3,7 +3,6 @@ metric_best: ap
 wandb:
   use: True
   project: peptides-func
-  entity: expand-gnns
 dataset:
   format: OGB
   name: peptides-functional

@@ -35,7 +35,7 @@ model:
   loss_fun: cross_entropy
   graph_pooling: mean
 gt:
-  layer_type: CustomGatedGCN+Transformer
+  layer_type: CustomGatedGCN+Exphormer
   layers: 8
   n_heads: 4
   dim_hidden: 64  # `gt.dim_hidden` must match `gnn.dim_inner`
@@ -43,6 +43,8 @@ gt:
   attn_dropout: 0.5
   layer_norm: False
   batch_norm: True
+  sparse:
+    k: 10
 gnn:
   head: default
   layers_pre_mp: 0

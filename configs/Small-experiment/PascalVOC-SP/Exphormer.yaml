@@ -3,7 +3,6 @@ metric_best: f1
 wandb:
   use: True
   project: Pascal
-  entity: expand-gnns
 dataset:
   format: PyG-VOCSuperpixels
   name: edge_wt_region_boundary

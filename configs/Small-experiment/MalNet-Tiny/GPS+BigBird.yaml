@@ -9,10 +9,16 @@ dataset:
   task: graph
   task_type: classification
   transductive: False
-  node_encoder: False
+  node_encoder: True
+  node_encoder_name: LinearNode
   edge_encoder: True
   edge_encoder_name: DummyEdge
   edge_encoder_bn: False
+posenc_ERN:
+  enable: False
+  model: Linear
+  dim_pe: 8
+  layers: 2
 train:
   mode: custom
   batch_size: 16
@@ -24,12 +30,12 @@ model:
   edge_decoding: dot
   graph_pooling: max
 gt:
-  layer_type: CustomGatedGCN+Performer
+  layer_type: CustomGatedGCN+BigBird # some other options: Exphormer, GINE+Exphormer, GINE, GINE__exp
   layers: 5
   n_heads: 4
   dim_hidden: 64  # `gt.dim_hidden` must match `gnn.dim_inner`
   dropout: 0.0
-  attn_dropout: 0.5
+  attn_dropout: 0.2
   layer_norm: False
   batch_norm: True
 gnn:

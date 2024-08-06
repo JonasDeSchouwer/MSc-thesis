@@ -125,6 +125,8 @@ def make_wandb_name(cfg):
         model_name += f".{cfg.gnn.layer_type}"
     elif cfg.model.type == 'GPSModel':
         model_name = f"GPS.{cfg.gt.layer_type}"
+    elif cfg.model.type == 'MultiModel':
+        model_name = f"Multi.{cfg.gt.layer_type}"
     model_name += f".{cfg.name_tag}" if cfg.name_tag else ""
     # Compose wandb run name.
     name = f"{dataset_name}.{model_name}.r{cfg.run_id}"

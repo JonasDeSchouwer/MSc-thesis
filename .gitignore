@@ -26,6 +26,7 @@ __pycache__/
 *.log
 *.bak
 scratchpad.ipynb
+**.yaml:Zone.Identifier
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
