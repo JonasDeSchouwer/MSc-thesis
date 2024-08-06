@@ -2,6 +2,7 @@ import datetime
 import os
 import torch
 import logging
+import time
 
 import graphgps  # noqa, register custom modules
 from graphgps.optimizer.extra_optimizers import ExtendedSchedulerConfig
@@ -164,6 +165,8 @@ if __name__ == '__main__':
         logging.info(cfg)
         cfg.params = params_count(model)
         logging.info('Num parameters: %s', cfg.params)
+
+        begin = time.time()
         # Start training
         if cfg.train.mode == 'standard':
             if cfg.wandb.use:
@@ -173,6 +176,9 @@ if __name__ == '__main__':
         else:
             train_dict[cfg.train.mode](loggers, loaders, model, optimizer,
                                        scheduler)
+        end = time.time()
+        logging.info(f"[*] Training completed in {end - begin}s")
+
     # Aggregate results from different seeds
     try:
         agg_runs(cfg.out_dir, cfg.metric_best)
