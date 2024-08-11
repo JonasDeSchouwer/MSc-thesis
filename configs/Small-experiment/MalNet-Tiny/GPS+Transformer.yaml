@@ -21,7 +21,7 @@ posenc_ERN:
   layers: 2
 train:
   mode: custom
-  batch_size: 16
+  batch_size: 2
   eval_period: 1
   ckpt_period: 100
 model:
