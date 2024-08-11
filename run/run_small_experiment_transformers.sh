@@ -54,6 +54,7 @@ function run_transformer_models {
     run_repeats ${dataset} GPS+Transformer
     run_repeats ${dataset} GPS+Performer
     run_repeats ${dataset} GPS+SparseAttention
+    run_repeats ${dataset} GPS+BigBird
 }
 
 
