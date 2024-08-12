@@ -38,6 +38,8 @@ function run_repeats {
         out_err_dir="results/${dataset}/${method}/${SEED}"
         mkdir -p ${out_err_dir}
 
+        echo out_err_dir ${out_err_dir}
+
         sbatch <<EOT
 #!/bin/bash
 #SBATCH --output="${out_err_dir}/${time}-%x-%j.out"
