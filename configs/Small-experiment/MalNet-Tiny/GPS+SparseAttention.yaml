@@ -40,6 +40,8 @@ gt:
   batch_norm: True
   sparse:
     k: 10
+    kq_dim: 16
+    val_dim: 16
 gnn:
   head: default
   layers_pre_mp: 1
