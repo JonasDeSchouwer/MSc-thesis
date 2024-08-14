@@ -38,8 +38,8 @@ gnn:
   layers_pre_mp: 0
   layers_mp: 5
   layers_post_mp: 1
-  dim_inner: 214
-  layer_type: gineconv
+  dim_inner: 136
+  layer_type: gatedgcnconv
   act: relu
   residual: True
   dropout: 0.0

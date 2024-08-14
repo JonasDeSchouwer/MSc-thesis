@@ -53,13 +53,26 @@ EOT
 }
 
 
-function run_transformer_models {
+function run_baselines {
+    dataset = $1
+    run_repeats ${dataset} GCN
+    run_repeats ${dataset} GINE
+    run_repeats ${dataset} GAT
+    run_repeats ${dataset} GatedGCN
+}
+function run_transformers {
     dataset=$1
-    run_repeats ${dataset} Exphormer
-    run_repeats ${dataset} GPS+Transformer
-    run_repeats ${dataset} GPS+Performer
-    run_repeats ${dataset} GPS+SparseAttention
+    run_repeats ${dataset} GPS+None
     run_repeats ${dataset} GPS+BigBird
+    run_repeats ${dataset} GPS+Performer
+    run_repeats ${dataset} GPS+Transformer
+    run_repeats ${dataset} Exphormer
+    run_repeats ${dataset} GPS+SparseAttention
+}
+function run_all {
+    dataset=$1
+    run_baselines ${dataset}
+    run_transformers ${dataset}
 }
 
 
@@ -86,13 +99,13 @@ slurm_directive="
 "
 
 
-run_transformer_models Cifar10
+run_all Cifar10
 
 
-run_transformer_models MalNet-Tiny
+run_all MalNet-Tiny
 
 
-run_transformer_models PascalVOC-SP
+run_all PascalVOC-SP
 
 
-run_transformer_models Peptides-Func
+run_all Peptides-Func

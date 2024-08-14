@@ -31,24 +31,40 @@ train:
   eval_period: 1
   ckpt_period: 100
 model:
-  type: custom_gnn
+  type: GPSModel
   loss_fun: cross_entropy
   graph_pooling: mean
+gt:
+  layer_type: CustomGatedGCN+None
+  layers: 8
+  n_heads: 4
+  dim_hidden: 81  # `gt.dim_hidden` must match `gnn.dim_inner`
+  dropout: 0.12
+  attn_dropout: 0.5
+  layer_norm: False
+  batch_norm: True
 gnn:
+  head: default
   layers_pre_mp: 0
-  layers_mp: 5
-  layers_post_mp: 1
-  dim_inner: 214
-  layer_type: gineconv
+  layers_post_mp: 1  # Not used when `gnn.head: san_graph`
+  dim_inner: 81  # `gt.dim_hidden` must match `gnn.dim_inner`
+  batchnorm: True
   act: relu
-  residual: True
-  dropout: 0.0
+  dropout: 0.12
 optim:
+  clip_grad_norm: True
   optimizer: adamW
   weight_decay: 0.0
-  base_lr: 0.001
-  max_epoch: 500
-  scheduler: reduce_on_plateau
-  reduce_factor: 0.5
-  schedule_patience: 20
-  min_lr: 1e-5
+  base_lr: 0.0003
+  max_epoch: 200
+  scheduler: cosine_with_warmup
+  num_warmup_epochs: 10
+#optim:
+#  optimizer: adamW
+#  weight_decay: 0.0
+#  base_lr: 0.0003
+#  max_epoch: 500
+#  scheduler: reduce_on_plateau
+#  reduce_factor: 0.5
+#  schedule_patience: 20
+#  min_lr: 1e-5
