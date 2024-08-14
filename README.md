@@ -27,13 +27,27 @@ conda install pytorch=1.10 torchvision torchaudio -c pytorch -c nvidia
 conda install pyg=2.0.4 -c pyg -c conda-forge
 
 # RDKit is required for OGB-LSC PCQM4Mv2 and datasets derived from it.  
-conda install openbabel -c conda-forge
-
-pip install fsspec rdkit
-pip install torchmetrics performer-pytorch ogb tensorboardX wandb pykeops
+pip install fsspec rdkit torchmetrics performer-pytorch ogb tensorboardX wandb pykeops ipykernel
 
 conda clean --all
 ```
+
+
+<!-- ```bash
+conda create -n exphormer python=3.9
+conda activate exphormer
+
+conda install openbabel -c conda-forge
+
+pip install numpy==1.26.4   # so that numpy 2.* is not installed
+pip install torch==1.10.1+cu113 torchvision==0.11.2+cu113 torchaudio==0.10.1 -f https://download.pytorch.org/whl/cu113/torch_stable.html
+pip install torch-scatter==2.0.9 torch-sparse==0.6.13 torch-cluster==1.6.0 torch-spline-conv==1.2.1 torch-geometric==2.0.4 -f https://data.pyg.org/whl/torch-1.10.0+cu113.html
+
+# RDKit is required for OGB-LSC PCQM4Mv2 and datasets derived from it.  
+pip install fsspec rdkit torchmetrics performer-pytorch ogb tensorboardX wandb pykeops ipykernel
+
+conda clean --all
+``` -->
 
 
 ### Running Exphormer
