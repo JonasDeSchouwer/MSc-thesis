@@ -35,15 +35,10 @@ function run_repeats {
         echo job name ${method}-${dataset}: seed ${SEED}
         echo ${main} --repeat 1 seed ${SEED} ${common_params}
 
-        out_err_dir="results/${dataset}/${method}/${SEED}"
-        mkdir -p ${out_err_dir}
-
-        echo out_err_dir ${out_err_dir}
-
         sbatch <<EOT
 #!/bin/bash
-#SBATCH --output="${out_err_dir}/${time}-%x-%j.out"
-#SBATCH --error="${out_err_dir}/${time}-%x-%j.err"
+#SBATCH --output="output/${time}-%x-%j.out"
+#SBATCH --error="output/${time}-%x-%j.err"
 ${slurm_directive}
 #SBATCH --job-name=${method}-${dataset}-${SEED}
 ${environment_setup}
