@@ -86,3 +86,7 @@ def set_cfg_gt(cfg):
     cfg.gt.sparse.val_dim = None
 
     cfg.gt.sparse.k = 10
+
+    cfg.gt.sparse.random_attention = False
+
+    cfg.gt.sparse.random_fraction = 0.1

@@ -99,7 +99,12 @@ class GPSLayer(nn.Module):
                 sparse_cfg.kq_dim = dim_h
             if sparse_cfg.val_dim is None:
                 sparse_cfg.val_dim = dim_h
-            self.self_attn = SparseAttention(dim=dim_h, kq_dim=sparse_cfg.kq_dim, val_dim=sparse_cfg.val_dim, num_heads=num_heads, k=sparse_cfg.k)
+            self.self_attn = SparseAttention(
+                dim=dim_h, kq_dim=sparse_cfg.kq_dim, val_dim=sparse_cfg.val_dim,
+                num_heads=num_heads, k=sparse_cfg.k,
+                random_attention=sparse_cfg.random_attention,
+                random_fraction=sparse_cfg.random_fraction
+            )
         else:
             raise ValueError(f"Unsupported global x-former model: "
                              f"{global_model_type}")

@@ -50,17 +50,17 @@ EOT
 
 function run_baselines {
     dataset = $1
-    run_repeats ${dataset} GCN
-    run_repeats ${dataset} GINE
-    run_repeats ${dataset} GAT
-    run_repeats ${dataset} GatedGCN
+    # run_repeats ${dataset} GCN
+    # run_repeats ${dataset} GINE
+    # run_repeats ${dataset} GAT
+    # run_repeats ${dataset} GatedGCN
 }
 function run_transformers {
     dataset=$1
-    run_repeats ${dataset} GPS+None
-    run_repeats ${dataset} GPS+BigBird
-    run_repeats ${dataset} GPS+Performer
-    run_repeats ${dataset} GPS+Transformer
+    # run_repeats ${dataset} GPS+None
+    # run_repeats ${dataset} GPS+BigBird
+    # run_repeats ${dataset} GPS+Performer
+    # run_repeats ${dataset} GPS+Transformer
     run_repeats ${dataset} Exphormer
     run_repeats ${dataset} GPS+SparseAttention
 }
@@ -85,22 +85,15 @@ done
 ################################################################################
 
 # Comment-out runs that you don't want to submit.
-cfg_dir="configs/Small-experiment"
+cfg_dir="configs/Large-experiment"
 slurm_directive="
-#SBATCH --partition=short
-#SBATCH --time=12:00:00
+#SBATCH --partition=medium
+#SBATCH --time=48:00:00
 #SBATCH --mem=60G
 #SBATCH --gres=gpu:1
 "
 
 
-run_all Cifar10
+run_all Ogbn-Arxiv
 
 
-run_all MalNet-Tiny
-
-
-run_all PascalVOC-SP
-
-
-run_all Peptides-Func
