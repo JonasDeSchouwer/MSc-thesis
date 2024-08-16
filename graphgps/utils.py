@@ -131,3 +131,18 @@ def make_wandb_name(cfg):
     # Compose wandb run name.
     name = f"{dataset_name}.{model_name}.r{cfg.run_id}"
     return name
+
+def batch_to_edge_idxs(batch):
+    """
+    Converts a batch to a list of batch.edge_index for each graph in the batch
+    """
+    edge_idxs = []
+    for graph_id in range(batch.num_graphs):
+        graph_mask = (batch.batch == graph_id)
+        graph_edge_mask = graph_mask[batch.edge_index[0]] & graph_mask[batch.edge_index[1]]
+        graph_edge_index = batch.edge_index[:, graph_edge_mask]
+        graph_min_node = graph_mask.nonzero().min()
+        graph_edge_index -= graph_min_node
+        edge_idxs.append(graph_edge_index)
+
+    return edge_idxs
