@@ -232,9 +232,9 @@ class SparseAttention(nn.Module):
 
         # defines the keys and values that will be selected
         # [**, num_heads, N*random_fraction]
-        node_indices = torch.empty((np.prod(first_dimensions), num_random), dtype=torch.int64)
+        node_indices = torch.empty((np.prod(first_dimensions), num_random), dtype=torch.int64, device=keys.device)
         for i in range(np.prod(first_dimensions)):
-            node_indices[i] = torch.randperm(Nk)[:num_random]
+            node_indices[i] = torch.randperm(Nk, device=keys.device)[:num_random]
         node_indices = node_indices.view(*first_dimensions, num_random)
 
         # [**, num_heads, N*random_fraction, kq_dim]
