@@ -46,7 +46,7 @@ gt:
     kq_dim: 16
     val_dim: 20
     random_attention: True
-    random_fraction: 0.005
+    random_fraction: 0.02
 gnn:
   head: inductive_node
   layers_pre_mp: 1

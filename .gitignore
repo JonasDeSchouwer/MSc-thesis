@@ -13,6 +13,7 @@ dataset/
 datasets/
 pretrained/
 results/
+output/
 vocprep/benchmark_RELEASE/
 vocprep/voc_viz_files/
 vocprep/VOC/benchmark_RELEASE/
