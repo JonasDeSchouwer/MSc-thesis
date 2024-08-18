@@ -42,6 +42,8 @@ function run_repeats {
 ${slurm_directive}
 #SBATCH --job-name=${method}-${dataset}-${SEED}
 ${environment_setup}
+nvidia-smi
+lscpu
 ${main} --repeat 1 seed ${SEED} ${common_params}
 EOT
     done

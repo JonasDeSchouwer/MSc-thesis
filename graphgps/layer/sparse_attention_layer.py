@@ -231,22 +231,22 @@ class SparseAttention(nn.Module):
         num_random = int(Nk * self.random_fraction)
 
         # defines the keys and values that will be selected
-        # [**, num_heads, N*random_fraction]
+        # [**, num_heads, Nk*random_fraction]
         node_indices = torch.empty((np.prod(first_dimensions), num_random), dtype=torch.int64, device=keys.device)
         for i in range(np.prod(first_dimensions)):
             node_indices[i] = torch.randperm(Nk, device=keys.device)[:num_random]
         node_indices = node_indices.view(*first_dimensions, num_random)
 
-        # [**, num_heads, N*random_fraction, kq_dim]
+        # [**, num_heads, Nk*random_fraction, kq_dim]
         keys_random = torch.gather(
             input=keys,
             dim=-2,
-            index=node_indices.unsqueeze(-1).expand(*node_indices.shape, keys.shape[-1])    # [**, num_heads, N*random_fraction, kq_dim]
+            index=node_indices.unsqueeze(-1).expand(*node_indices.shape, keys.shape[-1])    # [**, num_heads, Nk*random_fraction, kq_dim]
         )
         values_random = torch.gather(
             input=values,
             dim=-2,
-            index=node_indices.unsqueeze(-1).expand(*node_indices.shape, values.shape[-1])    # [**, num_heads, N*random_fraction, val_dim]
+            index=node_indices.unsqueeze(-1).expand(*node_indices.shape, values.shape[-1])    # [**, num_heads, Nk*random_fraction, val_dim]
         )
 
         return keys_random, values_random
