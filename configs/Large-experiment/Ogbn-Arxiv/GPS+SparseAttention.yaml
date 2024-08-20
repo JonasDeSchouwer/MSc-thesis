@@ -10,7 +10,7 @@ dataset:
   task_type: classification
   transductive: False
   node_encoder: False
-  node_encoder_name: LinearNode
+  node_encoder_name: LinearNode+RWSE
   node_encoder_bn: False
   edge_encoder: True
   edge_encoder_name: DummyEdge
