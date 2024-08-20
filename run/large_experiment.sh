@@ -59,7 +59,7 @@ function run_baselines {
 }
 function run_transformers {
     dataset=$1
-    # run_repeats ${dataset} GPS+None
+    run_repeats ${dataset} GPS+None
     # run_repeats ${dataset} GPS+BigBird
     # run_repeats ${dataset} GPS+Performer
     # run_repeats ${dataset} GPS+Transformer
@@ -89,10 +89,11 @@ done
 # Comment-out runs that you don't want to submit.
 cfg_dir="configs/Large-experiment"
 slurm_directive="
-#SBATCH --partition=medium
-#SBATCH --time=48:00:00
+#SBATCH --partition=short
+#SBATCH --time=12:00:00
 #SBATCH --mem=60G
 #SBATCH --gres=gpu:1
+#SBATCH --constraint="gpu_mem:40GB
 "
 
 
