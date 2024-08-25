@@ -60,9 +60,9 @@ function run_baselines {
 function run_transformers {
     dataset=$1
     run_repeats ${dataset} GPS+None
-    # run_repeats ${dataset} GPS+BigBird
-    # run_repeats ${dataset} GPS+Performer
-    # run_repeats ${dataset} GPS+Transformer
+    run_repeats ${dataset} GPS+BigBird
+    run_repeats ${dataset} GPS+Performer
+    run_repeats ${dataset} GPS+Transformer
     run_repeats ${dataset} Exphormer
     run_repeats ${dataset} GPS+SparseAttention
 }
@@ -97,6 +97,7 @@ slurm_directive="
 "
 
 
-run_all Ogbn-Arxiv
+run_all Amazon-Computer
 
+run_all Ogbn-Arxiv
 
