@@ -15,6 +15,7 @@ class SparseAttention(nn.Module):
         val_dim: int,
         num_heads: int,
         k: int,
+        head_agg: str,
         random_attention: bool = False,
         random_fraction: float = 0.1,
     ):
@@ -25,6 +26,7 @@ class SparseAttention(nn.Module):
             val_dim: the dimension of the value space
             num_heads: the number of heads, so also the number of different graphs that are generated
             k: for each query, the number of nearest keys to consider
+            head_agg: how to aggregate the heads. Options are "Linear" and "None"
             random_attention: if True, first select `random_fraction` keys randomly, then select the k nearest keys
             random_fraction: the fraction of keys to select randomly
         """
@@ -41,7 +43,15 @@ class SparseAttention(nn.Module):
         self.MQs = nn.Linear(dim, kq_dim * num_heads)  # query transformations
         self.MKs = nn.Linear(dim, kq_dim * num_heads)  # key transformations
         self.MVs = nn.Linear(dim, val_dim * num_heads)  # value transformations
-        self.MO = nn.Linear(val_dim * num_heads, dim)  # output transformations
+
+        self.head_agg = head_agg
+        if head_agg == "Linear":
+            self.MO = nn.Linear(val_dim * num_heads, dim)  # output transformations
+        elif head_agg in ("none", "None", None):
+            assert dim == val_dim * num_heads
+            pass
+        else:
+            raise ValueError(f"Unknown head_agg: {head_agg}, type: {type(head_agg)}")
 
     def reset_parameters(self):
         self.MQs.reset_parameters()
@@ -279,7 +289,13 @@ class SparseAttention(nn.Module):
         x = self.sparse_self_attention(queries, keys, values)
         # [**, N, num_heads * val_dim]
         x = self.combine_heads(x, small_dim=self.val_dim)
-        # [**, N, dim]
-        x = self.MO(x)
+
+        if self.head_agg == "Linear":
+            # [**, N, dim]
+            x = self.MO(x)
+        elif self.head_agg in ("none", "None", None):
+            pass
+        else:
+            raise ValueError(f"Unknown head_agg: {self.head_agg}")
 
         return x

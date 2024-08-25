@@ -90,3 +90,5 @@ def set_cfg_gt(cfg):
     cfg.gt.sparse.random_attention = False
 
     cfg.gt.sparse.random_fraction = 0.1
+
+    cfg.gt.sparse.head_agg = 'Linear'

@@ -22,7 +22,7 @@ function run_repeats {
     fi
 
     main="$DATA/.conda/envs/exphormer/bin/python -O main.py --cfg ${cfg_file}"
-    out_dir="results/${dataset}"  # <-- Set the output dir.
+    out_dir="results/Influence-of-k/${dataset}"  # <-- Set the output dir.
     common_params="out_dir ${out_dir} ${cfg_overrides}"
 
     echo "Run program: ${main}"
