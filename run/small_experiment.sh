@@ -98,11 +98,8 @@ slurm_directive="
 
 run_all Cifar10
 
-
 run_all MalNet-Tiny
 
-
 run_all PascalVOC-SP
-
 
 run_all Peptides-Func

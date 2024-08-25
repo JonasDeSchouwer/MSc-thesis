@@ -39,10 +39,10 @@ model:
   edge_decoding: dot
   graph_pooling: add
 gt:
-  layer_type: CustomGatedGCN+None
+  layer_type: CustomGatedGCN+Performer
   layers: 4
   n_heads: 2
-  dim_hidden: 80  # `gt.dim_hidden` must match `gnn.dim_inner`
+  dim_hidden: 60  # `gt.dim_hidden` must match `gnn.dim_inner`
   dropout: 0.4
   attn_dropout: 0.8
   layer_norm: False
@@ -51,7 +51,7 @@ gnn:
   head: default
   layers_pre_mp: 1
   layers_post_mp: 1  # Not used when `gnn.head: san_graph`
-  dim_inner: 80  # `gt.dim_hidden` must match `gnn.dim_inner`
+  dim_inner: 60  # `gt.dim_hidden` must match `gnn.dim_inner`
   batchnorm: True
   act: relu
   dropout: 0.4
