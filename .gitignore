@@ -9,9 +9,11 @@ scripts/pcqm4m/**/*.gz
 scripts/pcqm4m/**/*.tsv
 scripts/pcqm4m/pcqm4m-v2/
 slurm_history/
+dataset/
 datasets/
 pretrained/
 results/
+output/
 vocprep/benchmark_RELEASE/
 vocprep/voc_viz_files/
 vocprep/VOC/benchmark_RELEASE/
@@ -26,6 +28,7 @@ __pycache__/
 *.log
 *.bak
 scratchpad.ipynb
+**.yaml:Zone.Identifier
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
