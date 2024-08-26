@@ -6,6 +6,7 @@ import time
 
 import graphgps  # noqa, register custom modules
 from graphgps.optimizer.extra_optimizers import ExtendedSchedulerConfig
+from graphgps.utils import report_epoch_times
 
 from torch_geometric.graphgym.cmd_args import parse_args
 from torch_geometric.graphgym.config import (cfg, dump_cfg,
@@ -182,6 +183,7 @@ if __name__ == '__main__':
     # Aggregate results from different seeds
     try:
         agg_runs(cfg.out_dir, cfg.metric_best)
+        report_epoch_times(cfg.out_dir)
     except Exception as e:
         logging.info(f"Failed when trying to aggregate multiple runs: {e}")
     # When being launched in batch mode, mark a yaml as done

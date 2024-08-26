@@ -1,7 +1,11 @@
 import logging
 
 import torch
+import os
+import os.path as osp
+import numpy as np
 from torch_geometric.utils import remove_self_loops
+from torch_geometric.graphgym.utils.io import json_to_dict_list
 from torch_scatter import scatter
 
 from yacs.config import CfgNode
@@ -146,3 +150,32 @@ def batch_to_edge_idxs(batch):
         edge_idxs.append(graph_edge_index)
 
     return edge_idxs
+
+def report_epoch_times(dir):
+    """
+    Reads the epoch times in each split of the 'agg' subdir of the given `dir`
+    And writes the averages and standard deviations into each dir/agg/*split*/time.txt
+    """
+
+    agg_dir = osp.join(dir, "agg")
+    if not osp.exists(agg_dir):
+        raise Exception(f"{agg_dir} does not exist")
+    if not osp.isdir(agg_dir):
+        raise Exception(f"{agg_dir} is not a directory")
+
+
+    for split in os.listdir(agg_dir):
+        # get the stats_list for this split
+        dir_split = osp.join(agg_dir, split)
+        fname_stats = osp.join(dir_split, "stats.json")
+        stats_list = json_to_dict_list(fname_stats)
+
+        # compute the overall mean and variance of the epoch times for this split
+        epoch_time_means = np.array([x['time_epoch'] for x in stats_list])
+        epoch_time_stds = np.array([x['time_epoch_std'] for x in stats_list])
+        overall_epoch_time_mean = np.mean(epoch_time_means)
+        overall_epoch_time_variance = np.mean(epoch_time_stds**2 + (epoch_time_means - overall_epoch_time_mean)**2)
+
+        # save the overall mean and variance of the epoch times for this split in a new file 'time.txt'
+        with open(osp.join(dir_split, "time.txt"), "w") as f:
+            f.write(f"{overall_epoch_time_mean} ± {overall_epoch_time_variance}")

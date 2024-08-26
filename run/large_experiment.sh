@@ -93,7 +93,7 @@ slurm_directive="
 #SBATCH --time=12:00:00
 #SBATCH --mem=60G
 #SBATCH --gres=gpu:1
-#SBATCH --constraint="gpu_mem:40GB"
+#SBATCH --constraint="gpu_mem:32GB"
 "
 
 
