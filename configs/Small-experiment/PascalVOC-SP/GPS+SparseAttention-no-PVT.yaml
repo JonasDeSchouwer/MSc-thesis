@@ -46,7 +46,7 @@ gt:
   sparse:
     k: 10
     kq_dim: 16
-    val_dim: 22
+    val_dim: 11
     head_agg: None
 gnn:
   head: inductive_node

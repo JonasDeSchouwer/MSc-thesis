@@ -46,7 +46,7 @@ gt:
   sparse:
     k: 10
     kq_dim: 16
-    val_dim: 22
+    val_dim: 22 #  this should be 11 if we want val_dim*num_heads = dim_hidden
 gnn:
   head: inductive_node
   layers_pre_mp: 0
