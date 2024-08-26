@@ -34,7 +34,7 @@ gnn:
   layers_pre_mp: 1
   layers_mp: 8
   layers_post_mp: 3
-  dim_inner: 211
+  dim_inner: 160
   layer_type: gatconv
   batchnorm: True
   residual: True

@@ -34,7 +34,7 @@ gnn:
   layers_pre_mp: 1
   layers_mp: 8
   layers_post_mp: 3
-  dim_inner: 212
+  dim_inner: 160
   layer_type: gcnconv
   batchnorm: True
   residual: True
