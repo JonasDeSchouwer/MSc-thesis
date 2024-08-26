@@ -70,13 +70,14 @@ done
 ##### GPS
 ################################################################################
 
-# Comment-out runs that you don't want to submit.
+# Constraint: makes sure that all experiments are run with the same resources, to compare the runtime fairly.
 cfg_dir="configs/Influence-of-k"
 slurm_directive="
 #SBATCH --partition=short
 #SBATCH --time=12:00:00
 #SBATCH --mem=60G
 #SBATCH --gres=gpu:1
+#SBATCH --constraint="gpu_mem:32GB,gpu_sku:V100"
 "
 
 
