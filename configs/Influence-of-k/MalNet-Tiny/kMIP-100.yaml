@@ -33,7 +33,7 @@ gt:
   layer_type: CustomGatedGCN+SparseAttention # some other options: Exphormer, GINE+Exphormer, GINE, GINE__exp
   layers: 5
   n_heads: 4
-  dim_hidden: 64  # `gt.dim_hidden` must match `gnn.dim_inner`
+  dim_hidden: 68  # `gt.dim_hidden` must match `gnn.dim_inner`
   dropout: 0.0
   attn_dropout: 0.2
   layer_norm: False
@@ -41,12 +41,13 @@ gt:
   sparse:
     k: 100
     kq_dim: 16
-    val_dim: 16
+    val_dim: 17
+    head_agg: None
 gnn:
   head: default
   layers_pre_mp: 1
   layers_post_mp: 3  # Not used when `gnn.head: san_graph`
-  dim_inner: 64  # `gt.dim_hidden` must match `gnn.dim_inner`
+  dim_inner: 68  # `gt.dim_hidden` must match `gnn.dim_inner`
   batchnorm: True
   act: relu
   dropout: 0.0
