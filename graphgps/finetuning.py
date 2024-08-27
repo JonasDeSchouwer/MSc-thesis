@@ -97,7 +97,7 @@ def load_pretrained_model_cfg(cfg):
 
 
 def init_model_from_pretrained(model, pretrained_dir,
-                               freeze_main=False, reset_prediction_head=True, device=None):
+                               freeze_main=False, reset_prediction_head=True, device=None, seed=0):
     """ Copy model parameters from pretrained model except the prediction head.
 
     Args:
@@ -113,7 +113,7 @@ def init_model_from_pretrained(model, pretrained_dir,
     """
     from torch_geometric.graphgym.checkpoint import MODEL_STATE
 
-    ckpt_file = get_final_pretrained_ckpt(osp.join(pretrained_dir, '0', 'ckpt'))
+    ckpt_file = get_final_pretrained_ckpt(osp.join(pretrained_dir, str(seed), 'ckpt'))
     logging.info(f"[*] Loading from pretrained model: {ckpt_file}")
 
     ckpt = torch.load(ckpt_file, map_location=device)
