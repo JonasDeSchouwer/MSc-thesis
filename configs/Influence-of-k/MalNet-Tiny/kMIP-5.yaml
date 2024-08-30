@@ -10,12 +10,12 @@ dataset:
   task_type: classification
   transductive: False
   node_encoder: True
-  node_encoder_name: LinearNode+ERN
+  node_encoder_name: LinearNode
   edge_encoder: True
   edge_encoder_name: DummyEdge
   edge_encoder_bn: False
 posenc_ERN:
-  enable: True  # this was not enabled in the original config
+  enable: False  # this was not enabled in the original config
   model: Linear
   dim_pe: 8
   layers: 2
