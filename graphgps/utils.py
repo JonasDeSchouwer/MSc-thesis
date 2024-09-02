@@ -151,6 +151,18 @@ def batch_to_edge_idxs(batch):
 
     return edge_idxs
 
+def batch_to_labels_list(batch):
+    """
+    Converts a batch to a list of batch.y for each graph in the batch
+    """
+    labels_list = []
+    for graph_id in range(batch.num_graphs):
+        graph_mask = (batch.batch == graph_id)
+        graph_labels = batch.y[graph_mask]
+        labels_list.append(graph_labels)
+
+    return labels_list
+
 def report_epoch_times(dir):
     """
     Reads the epoch times in each split of the 'agg' subdir of the given `dir`
