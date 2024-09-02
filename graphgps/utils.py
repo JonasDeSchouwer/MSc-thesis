@@ -187,7 +187,38 @@ def report_epoch_times(dir):
         epoch_time_stds = np.array([x['time_epoch_std'] for x in stats_list])
         overall_epoch_time_mean = np.mean(epoch_time_means)
         overall_epoch_time_variance = np.mean(epoch_time_stds**2 + (epoch_time_means - overall_epoch_time_mean)**2)
+        overall_epoch_time_std = np.sqrt(overall_epoch_time_variance)
 
-        # save the overall mean and variance of the epoch times for this split in a new file 'time.txt'
+        # save the overall mean and std of the epoch times for this split in a new file 'time.txt'
         with open(osp.join(dir_split, "time.txt"), "w") as f:
-            f.write(f"{overall_epoch_time_mean} ± {overall_epoch_time_variance}")
+            f.write(f"{overall_epoch_time_mean} ± {overall_epoch_time_std}")
+
+def report_epoch_times2(dir):
+    """
+    Reads the epoch times from the subdir of each split of each run in the given `dir`
+    And writes the averages and standard deviations into each dir/agg/*split*/time.txt
+    """
+
+    agg_dir = osp.join(dir, "agg")
+    splits = os.listdir(agg_dir)
+    runs = [subdir for subdir in os.listdir(dir) if subdir != "agg"]
+
+    for split in splits:
+
+        epoch_time_means = []
+
+        # get the mean for each split
+        for run in runs:
+            run_split_dir = osp.join(dir, run, split)
+            fname_stats = osp.join(run_split_dir, "stats.json")
+            stats_list = json_to_dict_list(fname_stats)
+
+            epoch_time_mean = np.mean([x['time_epoch'] for x in stats_list])
+            epoch_time_means.append(epoch_time_mean)
+
+        overall_epoch_time_mean = np.mean(epoch_time_means)
+        overall_epoch_time_std = np.std(epoch_time_means)
+
+        # save the overall mean and std of the epoch times for this split in a new file 'time2.txt'
+        with open(osp.join(agg_dir, split, "time2.txt"), "w") as f:
+            f.write(f"{overall_epoch_time_mean} ± {overall_epoch_time_std}")
