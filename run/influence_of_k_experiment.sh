@@ -51,7 +51,25 @@ EOT
 
 function run_all {
     dataset=$1
-    for k in 1 2 3 5 10 20 30 50 100; do
+    slurm_directive="
+#SBATCH --partition=short
+#SBATCH --time=12:00:00
+#SBATCH --mem=60G
+#SBATCH --gres=gpu:1
+#SBATCH --constraint="gpu_mem:32GB,gpu_sku:V100"
+"
+    for k in 1 2 3 5 10 20 30; do
+        run_repeats ${dataset} kMIP-${k}
+    done
+
+    slurm_directive="
+#SBATCH --partition=medium
+#SBATCH --time=48:00:00
+#SBATCH --mem=60G
+#SBATCH --gres=gpu:1
+#SBATCH --constraint="gpu_mem:32GB,gpu_sku:V100"
+"
+    for k in 50 100; do
         run_repeats ${dataset} kMIP-${k}
     done
 }
@@ -72,13 +90,7 @@ done
 
 # Constraint: makes sure that all experiments are run with the same resources, to compare the runtime fairly.
 cfg_dir="configs/Influence-of-k"
-slurm_directive="
-#SBATCH --partition=short
-#SBATCH --time=12:00:00
-#SBATCH --mem=60G
-#SBATCH --gres=gpu:1
-#SBATCH --constraint="gpu_mem:32GB,gpu_sku:V100"
-"
+
 
 
 run_all Cifar10
