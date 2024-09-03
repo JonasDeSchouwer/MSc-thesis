@@ -52,10 +52,10 @@ EOT
 
 function run_baselines {
     dataset = $1
-    # run_repeats ${dataset} GCN
-    # run_repeats ${dataset} GINE
-    # run_repeats ${dataset} GAT
-    # run_repeats ${dataset} GatedGCN
+    run_repeats ${dataset} GCN
+    run_repeats ${dataset} GINE
+    run_repeats ${dataset} GAT
+    run_repeats ${dataset} GatedGCN
 }
 function run_transformers {
     dataset=$1
