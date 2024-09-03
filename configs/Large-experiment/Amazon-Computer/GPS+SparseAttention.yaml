@@ -41,7 +41,7 @@ model:
 gt:
   layer_type: CustomGatedGCN+SparseAttention
   layers: 4
-  n_heads: 2
+  n_heads: 4
   dim_hidden: 72  # `gt.dim_hidden` must match `gnn.dim_inner`
   dropout: 0.4
   attn_dropout: 0.8
@@ -51,6 +51,7 @@ gt:
     k: 10
     kq_dim: 16
     val_dim: 18
+    head_agg: None
 gnn:
   head: default
   layers_pre_mp: 1

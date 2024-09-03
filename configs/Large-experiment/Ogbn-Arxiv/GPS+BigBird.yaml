@@ -15,11 +15,6 @@ dataset:
   edge_encoder: True
   edge_encoder_name: DummyEdge
   edge_encoder_bn: False
-prep:
-  exp: True
-  exp_deg: 3 # Algorithm will use 3 permutations or 3 Hamiltonian cycles, so actual degree will be 6
-  add_self_loops: true
-  num_virt_node: 0
 posenc_RWSE:
   enable: False
   kernel:
@@ -38,10 +33,10 @@ model:
   edge_decoding: dot
   graph_pooling: add
 gt:
-  layer_type: CustomGatedGCN+Exphormer # some other options: Exphormer,CustomGatedGCN+Exphormer,  GINE+Exphormer, GINE, GINE__exp
+  layer_type: CustomGatedGCN+BigBird # some other options: Exphormer,CustomGatedGCN+Exphormer,  GINE+Exphormer, GINE, GINE__exp
   layers: 4
   n_heads: 4
-  dim_hidden: 96  # `gt.dim_hidden` must match `gnn.dim_inner`
+  dim_hidden: 88  # `gt.dim_hidden` must match `gnn.dim_inner`
   dropout: 0.3
   attn_dropout: 0.5
   layer_norm: False
@@ -51,7 +46,7 @@ gnn:
   layers_pre_mp: 1
   # layers_mp: 3
   layers_post_mp: 1
-  dim_inner: 96
+  dim_inner: 88
   layer_type: generalconv
   stage_type: stack
   batchnorm: True

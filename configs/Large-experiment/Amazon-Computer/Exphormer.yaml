@@ -46,7 +46,7 @@ model:
 gt:
   layer_type: GCN+Exphormer # some other options: Exphormer, GINE+Exphormer, GINE, GINE__exp
   layers: 4
-  n_heads: 2
+  n_heads: 4
   dim_hidden: 80  # `gt.dim_hidden` must match `gnn.dim_inner`
   dropout: 0.4
   attn_dropout: 0.8
