@@ -17,8 +17,8 @@ dataset:
   edge_encoder_name: DummyEdge
   edge_encoder_bn: False
 prep:
-  exp: True
-  exp_deg: 3 # Algorithm will use 3 permutations or 3 Hamiltonian cycles, so actual degree will be 6
+  exp: False
+  exp_deg: 3
   add_edge_index: True # Set True if you want to add real edges beside expander edges
   num_virt_node: 3 # Set True if you want to add global node connections beside expander edges
 posenc_EquivStableLapPE:
@@ -34,7 +34,7 @@ train:
   eval_period: 1
   ckpt_period: 100
 model:
-  type: MultiModel
+  type: GPSModel
   loss_fun: weighted_cross_entropy
   edge_decoding: dot
 gt: 
