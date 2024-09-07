@@ -50,7 +50,6 @@ gt:
     k: 100
     kq_dim: 16
     val_dim: 13
-    head_agg: None
 gnn:
   head: inductive_node
   layers_pre_mp: 0
