@@ -56,7 +56,6 @@ function run_all {
 #SBATCH --time=12:00:00
 #SBATCH --mem=60G
 #SBATCH --gres=gpu:1
-#SBATCH --constraint="gpu_mem:32GB,gpu_sku:V100"
 "
     for kq in 3 5 7 10 15 20 30; do
         run_repeats ${dataset} kMIP-kq${kq}
