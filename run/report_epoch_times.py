@@ -17,7 +17,7 @@ def report_epoch_times2(dir):
 
     agg_dir = osp.join(dir, "agg")
     splits = os.listdir(agg_dir)
-    runs = [subdir for subdir in os.listdir(dir) if subdir != "agg"]
+    runs = [subdir for subdir in os.listdir(dir) if subdir != "agg" and osp.isdir(osp.join(dir, subdir))]
 
     for split in splits:
 
