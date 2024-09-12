@@ -64,7 +64,10 @@ def typecast_x(data, type_str):
 
 
 def concat_x_and_pos(data):
-    data.x = torch.cat((data.x, data.pos), 1)
+    if data.x is None:
+        data.x = data.pos
+    else:
+        data.x = torch.cat((data.x, data.pos), 1)
     return data
 
 def move_node_feat_to_x(data):
