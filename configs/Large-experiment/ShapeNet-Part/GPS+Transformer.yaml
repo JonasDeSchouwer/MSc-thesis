@@ -6,7 +6,7 @@ wandb:
 dataset:
   format: PyG-ShapeNet
   # name: 
-  task: node
+  task: graph # Even though ShapeNet-Part is a node-level task, this needs to be set as 'graph'. The reason why is known only to God, and maybe the authors of the code. I definitely don't.
   task_type: classification
   transductive: False
   split_mode: standard

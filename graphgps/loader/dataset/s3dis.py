@@ -45,9 +45,6 @@ class S3DIS(InMemoryDataset):
         super().__init__(root, transform, pre_transform, pre_filter)
         self.data, self.slices = torch.load(self.processed_paths[0])
         self.idx_split = torch.load(self.processed_paths[1])
-        self.slices['train_mask'] = self.idx_split['train']
-        self.slices['val_mask'] = self.idx_split['val']
-        self.slices['test_mask'] = self.idx_split['test']
 
     @property
     def raw_file_names(self):
@@ -104,6 +101,7 @@ class S3DIS(InMemoryDataset):
         self.test_mask = torch.tensor(test_mask, dtype=torch.long)
 
         # get a validation mask from the training set, of the same size as the test set
+        print("test_mask", len(self.test_mask))
         self.train_mask = self.train_mask[torch.randperm(len(self.train_mask))]
         self.val_mask = self.train_mask[:len(self.test_mask)]
         self.train_mask = self.train_mask[len(self.test_mask):]
@@ -112,6 +110,8 @@ class S3DIS(InMemoryDataset):
             'val': self.val_mask,
             'test': self.test_mask,
         }
+        print("train_mask", len(self.train_mask))
+        print("val_mask", len(self.val_mask))
 
         torch.save(self.collate(data_list), self.processed_paths[0])
         torch.save(self.idx_split, self.processed_paths[1])

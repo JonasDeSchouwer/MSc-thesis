@@ -11,7 +11,7 @@ from numpy.random import default_rng
 from ogb.nodeproppred import PygNodePropPredDataset
 from ogb.graphproppred import PygGraphPropPredDataset
 from torch_geometric.datasets import (Amazon, Coauthor, GNNBenchmarkDataset, TUDataset,
-                                      WikipediaNetwork, ZINC, ShapeNet, S3DIS)
+                                      WikipediaNetwork, ZINC, ShapeNet)
 from torch_geometric.graphgym.config import cfg
 from torch_geometric.graphgym.loader import load_pyg, load_ogb, set_dataset_attr
 from torch_geometric.graphgym.register import register_loader
@@ -22,7 +22,7 @@ from graphgps.loader.dataset.coco_superpixels import COCOSuperpixels
 from graphgps.loader.dataset.malnet_tiny import MalNetTiny
 from graphgps.loader.dataset.voc_superpixels import VOCSuperpixels
 # from graphgps.loader.dataset.shapenet_part import ShapeNet
-# from graphgps.loader.dataset.s3dis import S3DIS
+from graphgps.loader.dataset.s3dis import S3DIS
 from graphgps.loader.split_generator import (prepare_splits,
                                              set_dataset_splits)
 from graphgps.transform.posenc_stats import compute_posenc_stats
@@ -54,6 +54,8 @@ def log_loaded_dataset(dataset, format, name):
                  f"{total_num_nodes // len(dataset)}")
     logging.info(f"  num node features: {dataset.num_node_features}")
     logging.info(f"  num edge features: {dataset.num_edge_features}")
+    if hasattr(dataset, 'edge_index'):
+        logging.info(f"  avg num_edges/graph: ", dataset.edge_index.size(1) // len(dataset))
     if hasattr(dataset, 'num_tasks'):
         logging.info(f"  num tasks: {dataset.num_tasks}")
 
@@ -701,7 +703,7 @@ def preformat_ShapeNet(dataset_dir):
     Returns:
         PyG dataset object
     """
-    dataset = dataset = join_dataset_splits(
+    dataset = join_dataset_splits(
         [ShapeNet(root=dataset_dir, split=split)
          for split in ['train', 'val', 'test']]
     )
@@ -710,8 +712,9 @@ def preformat_ShapeNet(dataset_dir):
     pre_transform_in_memory(dataset, partial(concat_x_and_pos))
 
     # create k-NN graph from 'pos' attribute
-    # pre_transform_in_memory(dataset, partial(generate_knn_graph_from_pos, k=6, distance_edge_attr=False), show_progress=True)
-    pre_transform_in_memory(dataset, generate_chain_graph)
+    logging.info("Creating k-NN graph from 'pos' attribute ...")
+    pre_transform_in_memory(dataset, partial(generate_knn_graph_from_pos, k=6, distance_edge_attr=False), show_progress=True)
+    # pre_transform_in_memory(dataset, generate_chain_graph)
 
     
 
@@ -727,9 +730,18 @@ def preformat_S3DIS(dataset_dir):
     Returns:
         PyG dataset object
     """
+    # dataset = join_dataset_splits(
+    #     [S3DIS(root=dataset_dir, split=split)
+    #      for split in ['train', 'val', 'test']]
+    # )
     dataset = S3DIS(root=dataset_dir)
-    # s_dict = dataset.get_idx_split()
-    # dataset.split_idxs = [s_dict[s] for s in ['train', 'val', 'test']]
+
+    # create k-NN graph from 'pos' attribute
+    logging.info("Creating k-NN graph from 'pos' attribute ...")
+    pre_transform_in_memory(dataset, partial(generate_knn_graph_from_pos, k=6, distance_edge_attr=False), show_progress=True)
+
+    s_dict = dataset.get_idx_split()
+    dataset.split_idxs = [s_dict[s] for s in ['train', 'val', 'test']]
 
     return dataset
 
@@ -786,9 +798,9 @@ def join_dataset_splits(datasets):
     datasets[0]._indices = None
     datasets[0]._data_list = data_list
     datasets[0].data, datasets[0].slices = datasets[0].collate(data_list)
-    split_idxs = [list(range(n1)),
-                  list(range(n1, n1 + n2)),
-                  list(range(n1 + n2, n1 + n2 + n3))]
+    split_idxs = [torch.tensor(list(range(n1))),
+                  torch.tensor(list(range(n1, n1 + n2))),
+                  torch.tensor(list(range(n1 + n2, n1 + n2 + n3)))]
     datasets[0].split_idxs = split_idxs
 
     return datasets[0]
