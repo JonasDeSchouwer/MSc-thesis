@@ -35,11 +35,11 @@ train:
   eval_period: 1
   ckpt_period: 100
 model:
-  type: GPSModel
+  type: MultiModel
   loss_fun: weighted_cross_entropy
   edge_decoding: dot
 gt: 
-  layer_type: CustomGatedGCN+Transformer # some other options: Exphormer, GINE+Exphormer, GINE, GINE__exp
+  layer_type: CustomGatedGCN+Exphormer # some other options: Exphormer, GINE+Exphormer, GINE, GINE__exp
   layers: 8
   n_heads: 4
   dim_hidden: 52  # `gt.dim_hidden` must match `gnn.dim_inner`

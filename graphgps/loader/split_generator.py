@@ -3,6 +3,7 @@ import logging
 import os
 
 import numpy as np
+import torch
 from sklearn.model_selection import KFold, StratifiedKFold, ShuffleSplit
 from torch_geometric.graphgym.config import cfg
 from torch_geometric.graphgym.loader import index2mask, set_dataset_attr
@@ -121,7 +122,7 @@ def setup_random_split(dataset):
     val_index = val_test_index[val_index]
     test_index = val_test_index[test_index]
 
-    set_dataset_splits(dataset, [train_index, val_index, test_index])
+    set_dataset_splits(dataset, [torch.tensor(train_index), torch.tensor(val_index), torch.tensor(test_index)])
 
 
 def set_dataset_splits(dataset, splits):

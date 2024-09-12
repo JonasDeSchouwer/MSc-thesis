@@ -21,6 +21,7 @@ from graphgps.loader.dataset.aqsol_molecules import AQSOL
 from graphgps.loader.dataset.coco_superpixels import COCOSuperpixels
 from graphgps.loader.dataset.malnet_tiny import MalNetTiny
 from graphgps.loader.dataset.voc_superpixels import VOCSuperpixels
+# from graphgps.loader.dataset.s3dis import S3DIS
 from graphgps.loader.split_generator import (prepare_splits,
                                              set_dataset_splits)
 from graphgps.transform.posenc_stats import compute_posenc_stats
@@ -721,6 +722,8 @@ def preformat_S3DIS(dataset_dir):
         PyG dataset object
     """
     dataset = S3DIS(root=dataset_dir)
+    # s_dict = dataset.get_idx_split()
+    # dataset.split_idxs = [s_dict[s] for s in ['train', 'val', 'test']]
 
     return dataset
 
