@@ -104,17 +104,7 @@ class ShapeNet(InMemoryDataset):
         self.categories = categories
         super().__init__(root, transform, pre_transform, pre_filter)
 
-        if split == 'train':
-            path = self.processed_paths[0]
-        elif split == 'val':
-            path = self.processed_paths[1]
-        elif split == 'test':
-            path = self.processed_paths[2]
-        elif split == 'trainval':
-            path = self.processed_paths[3]
-        else:
-            raise ValueError((f'Split {split} found, but expected either '
-                              'train, val, trainval or test'))
+        path = self.processed_paths[0]
 
         self.data, self.slices = torch.load(path)
         self.data.x = self.data.x if include_normals else None
@@ -137,8 +127,8 @@ class ShapeNet(InMemoryDataset):
         cats = '_'.join([cat[:3].lower() for cat in self.categories])
         return [
             osp.join(f'{cats}_{split}.pt')
-            for split in ['train', 'val', 'test', 'trainval']
-        ]
+            for split in ['data']
+        ] + [f'idx_split.pt']
 
     def download(self):
         path = download_url(self.url, self.root)
@@ -172,7 +162,10 @@ class ShapeNet(InMemoryDataset):
         return data_list
 
     def process(self):
-        trainval = []
+        total_data_list = []
+        train_mask = []
+        test_mask = []
+        val_mask = []
         for i, split in enumerate(['train', 'val', 'test']):
             path = osp.join(self.raw_dir, 'train_test_split',
                             f'shuffled_{split}_file_list.json')
@@ -181,11 +174,41 @@ class ShapeNet(InMemoryDataset):
                     osp.sep.join(name.split('/')[1:]) + '.txt'
                     for name in json.load(f)
                 ]  # Removing first directory.
-            data_list = self.process_filenames(filenames)
-            if split == 'train' or split == 'val':
-                trainval += data_list
-            torch.save(self.collate(data_list), self.processed_paths[i])
-        torch.save(self.collate(trainval), self.processed_paths[3])
+
+            new_data = self.process_filenames(filenames)
+
+            # add to mask
+            if split == 'train':
+                train_mask += list(range(len(total_data_list), len(total_data_list) + len(new_data)))
+            elif split == 'val':
+                val_mask += list(range(len(total_data_list), len(total_data_list) + len(new_data)))
+            elif split == 'test':
+                test_mask += list(range(len(total_data_list), len(total_data_list) + len(new_data)))
+
+            # add to data list
+            total_data_list += new_data
+
+
+        # create idx_split dict
+        idx_split = {
+            'train': torch.tensor(train_mask),
+            'val': torch.tensor(val_mask),
+            'test': torch.tensor(test_mask),
+        }
+
+        torch.save(self.collate(total_data_list), self.processed_paths[0])
+        torch.save(idx_split, self.processed_paths[1])
+
+    def get_idx_split(self):
+        """ Get dataset splits.
+
+        Returns:
+            Dict with 'train', 'val', 'test', splits indices.
+        """
+        split_file = self.processed_paths[1]
+        with open(split_file, 'rb') as f:
+            split_dict = torch.load(f)
+        return split_dict
 
     def __repr__(self) -> str:
         return (f'{self.__class__.__name__}({len(self)}, '

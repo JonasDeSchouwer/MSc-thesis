@@ -21,6 +21,7 @@ from graphgps.loader.dataset.aqsol_molecules import AQSOL
 from graphgps.loader.dataset.coco_superpixels import COCOSuperpixels
 from graphgps.loader.dataset.malnet_tiny import MalNetTiny
 from graphgps.loader.dataset.voc_superpixels import VOCSuperpixels
+# from graphgps.loader.dataset.shapenet_part import ShapeNet
 # from graphgps.loader.dataset.s3dis import S3DIS
 from graphgps.loader.split_generator import (prepare_splits,
                                              set_dataset_splits)
@@ -700,7 +701,10 @@ def preformat_ShapeNet(dataset_dir):
     Returns:
         PyG dataset object
     """
-    dataset = ShapeNet(root=dataset_dir)
+    dataset = dataset = join_dataset_splits(
+        [ShapeNet(root=dataset_dir, split=split)
+         for split in ['train', 'val', 'test']]
+    )
 
     # add 'pos' attribute to 'x' attribute
     pre_transform_in_memory(dataset, partial(concat_x_and_pos))
@@ -708,6 +712,8 @@ def preformat_ShapeNet(dataset_dir):
     # create k-NN graph from 'pos' attribute
     # pre_transform_in_memory(dataset, partial(generate_knn_graph_from_pos, k=6, distance_edge_attr=False), show_progress=True)
     pre_transform_in_memory(dataset, generate_chain_graph)
+
+    
 
     return dataset
 
