@@ -28,7 +28,7 @@ train:
   eval_period: 1
   ckpt_period: 100
 model:
-  type: MultiModel
+  type: GPSModel
   loss_fun: cross_entropy
   edge_decoding: dot
   graph_pooling: add

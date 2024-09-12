@@ -11,7 +11,7 @@ from numpy.random import default_rng
 from ogb.nodeproppred import PygNodePropPredDataset
 from ogb.graphproppred import PygGraphPropPredDataset
 from torch_geometric.datasets import (Amazon, Coauthor, GNNBenchmarkDataset, TUDataset,
-                                      WikipediaNetwork, ZINC)
+                                      WikipediaNetwork, ZINC, ShapeNet, S3DIS)
 from torch_geometric.graphgym.config import cfg
 from torch_geometric.graphgym.loader import load_pyg, load_ogb, set_dataset_attr
 from torch_geometric.graphgym.register import register_loader
@@ -27,7 +27,9 @@ from graphgps.transform.posenc_stats import compute_posenc_stats
 from graphgps.transform.transforms import (pre_transform_in_memory,
                                            generate_splits, # not the same as split_generator above.
                                            typecast_x, concat_x_and_pos,
-                                           clip_graphs_to_size, move_node_feat_to_x)
+                                           clip_graphs_to_size, move_node_feat_to_x,
+                                           generate_knn_graph_from_pos,
+                                           generate_chain_graph)
 from graphgps.transform.expander_edges import generate_random_expander
 from graphgps.transform.dist_transforms import (add_dist_features, add_reverse_edges,
                                                  add_self_loops, effective_resistances, 
@@ -166,6 +168,12 @@ def load_dataset_master(format, name, dataset_dir):
             
         elif pyg_dataset_id == 'AQSOL':
             dataset = preformat_AQSOL(dataset_dir, name)
+
+        elif pyg_dataset_id == 'ShapeNet':
+            dataset = preformat_ShapeNet(dataset_dir)
+
+        elif pyg_dataset_id == 'S3DIS':
+            dataset = preformat_S3DIS(dataset_dir)
 
         else:
             raise ValueError(f"Unexpected PyG Dataset identifier: {format}")
@@ -681,6 +689,40 @@ def preformat_AQSOL(dataset_dir):
     )
     return dataset
 
+def preformat_ShapeNet(dataset_dir):
+    """
+    Load and preformat ShapeNet dataset.
+    
+    Args:
+        dataset_dir: path where to store the cached dataset
+    
+    Returns:
+        PyG dataset object
+    """
+    dataset = ShapeNet(root=dataset_dir)
+
+    # add 'pos' attribute to 'x' attribute
+    pre_transform_in_memory(dataset, partial(concat_x_and_pos))
+
+    # create k-NN graph from 'pos' attribute
+    # pre_transform_in_memory(dataset, partial(generate_knn_graph_from_pos, k=6, distance_edge_attr=False), show_progress=True)
+    pre_transform_in_memory(dataset, generate_chain_graph)
+
+    return dataset
+
+def preformat_S3DIS(dataset_dir):
+    """
+    Load and preformat S3DIS dataset.
+    
+    Args:
+        dataset_dir: path where to store the cached dataset
+    
+    Returns:
+        PyG dataset object
+    """
+    dataset = S3DIS(root=dataset_dir)
+
+    return dataset
 
 def preformat_VOCSuperpixels(dataset_dir, name, slic_compactness):
     """Load and preformat VOCSuperpixels dataset.

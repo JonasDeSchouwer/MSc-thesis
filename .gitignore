@@ -28,6 +28,7 @@ __pycache__/
 *.log
 *.bak
 **.yaml:Zone.Identifier
+saved_tokens
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

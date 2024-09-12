@@ -26,8 +26,9 @@ conda activate exphormer
 conda install pytorch=1.10 torchvision torchaudio -c pytorch -c nvidia
 conda install pyg=2.0.4 -c pyg -c conda-forge
 
-# RDKit is required for OGB-LSC PCQM4Mv2 and datasets derived from it.  
-pip install fsspec rdkit torchmetrics performer-pytorch ogb tensorboardX wandb pykeops ipykernel
+# RDKit is required for OGB-LSC PCQM4Mv2 and datasets derived from it.
+# h5py is required for S3DIS  
+pip install fsspec rdkit torchmetrics performer-pytorch ogb tensorboardX wandb pykeops ipykernel h5py
 
 conda clean --all
 ```

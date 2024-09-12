@@ -1,6 +1,7 @@
 import logging
 
 import torch
+import torch_geometric
 from torch_geometric.utils import subgraph
 from tqdm import tqdm
 
@@ -99,3 +100,33 @@ def clip_graphs_to_size(data, size_limit=5000):
         if hasattr(data, 'edge_attr'):
             data.edge_attr = edge_attr
         return data
+
+
+def generate_knn_graph_from_pos(data: torch_geometric.data.Data, k: int, distance_edge_attr: bool = True):
+    # compute on cuda if available
+    if torch.cuda.is_available():
+        pos = data.pos.cuda()
+    else:
+        pos = data.pos
+    edge_index = torch_geometric.nn.knn_graph(
+        pos,
+        k=k,
+        loop=False,
+    )
+    data.edge_index = edge_index.to(data.pos.device)
+    
+    # compute the distance as edge attribute
+    if distance_edge_attr:
+        edge_attr = torch.norm(data.pos[edge_index[0]] - data.pos[edge_index[1]], dim=1).unsqueeze(-1).to(data.pos.device)
+        data.edge_attr = edge_attr
+    else:
+        data.edge_attr = None
+
+    return data
+
+
+def generate_chain_graph(data: torch_geometric.data.Data):
+    n_nodes = data.x.size(0)
+    edge_index = torch.stack([torch.arange(n_nodes - 1), torch.arange(1, n_nodes)], dim=0)
+    data.edge_index = edge_index
+    return data
