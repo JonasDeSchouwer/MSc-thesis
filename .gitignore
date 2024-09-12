@@ -166,3 +166,4 @@ dmypy.json
 *.swp
 
 
+!graphgps/loader/dataset/
