@@ -1,5 +1,4 @@
 # CUSTOM
-.vscode/
 scripts/pcqm4m/**/*.zip
 scripts/pcqm4m/**/*.sdf
 scripts/pcqm4m/**/*.xyz
