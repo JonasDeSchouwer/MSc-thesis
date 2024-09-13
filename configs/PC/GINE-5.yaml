@@ -1,10 +1,10 @@
 out_dir: results
-metric_best: f1
+metric_best: determine_in_script
 wandb:
   use: True
   project: S3DIS
 dataset:
-  format: PyG-S3DIS
+  format: determine_in_script
   # name: 
   task: graph # Even though S3DIS is a node-level task, this needs to be set as 'graph'. The reason why is known only to God, and maybe the authors of the code. I definitely don't.
   task_type: classification
@@ -22,16 +22,16 @@ train:
   eval_period: 1
   ckpt_period: 100
 model:
-  type: gnn
+  type: custom_gnn
   loss_fun: weighted_cross_entropy
   edge_decoding: dot
 gnn:
   head: default
   layers_pre_mp: 0
-  layers_mp: 15
+  layers_mp: 5
   layers_post_mp: 2
-  dim_inner: 134
-  layer_type: gcnconv
+  dim_inner: 163
+  layer_type: gineconv
   batchnorm: True
   residual: True
   act: relu
