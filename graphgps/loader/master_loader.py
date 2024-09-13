@@ -771,9 +771,10 @@ def preformat_ModelNet(dataset_dir, name):
     logging.info("Adding 'pos' attribute to 'x' attribute ...")
     pre_transform_in_memory(dataset, partial(concat_x_and_pos))
 
+    # NOT NECESSARY because ModelNet in PyG comes with edges!!
     # create k-NN graph from 'pos' attribute
-    logging.info("Creating k-NN graph from 'pos' attribute ...")
-    pre_transform_in_memory(dataset, partial(generate_knn_graph_from_pos, k=8, distance_edge_attr=False), show_progress=True)   # k=8 is chosen because it is the k for which PointViG (https://arxiv.org/pdf/2407.00921v1) performed best on ModelNet40
+    # logging.info("Creating k-NN graph from 'pos' attribute ...")
+    # pre_transform_in_memory(dataset, partial(generate_knn_graph_from_pos, k=8, distance_edge_attr=False), show_progress=True)   # k=8 is chosen because it is the k for which PointViG (https://arxiv.org/pdf/2407.00921v1) performed best on ModelNet40
 
     return dataset
 
