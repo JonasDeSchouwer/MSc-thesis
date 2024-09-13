@@ -118,9 +118,13 @@ def generate_knn_graph_from_pos(data: torch_geometric.data.Data, k: int, distanc
     # compute the distance as edge attribute
     if distance_edge_attr:
         edge_attr = torch.norm(data.pos[edge_index[0]] - data.pos[edge_index[1]], dim=1).unsqueeze(-1).to(data.pos.device)
-        data.edge_attr = edge_attr
+        if hasattr(data, 'edge_attr') and data.edge_attr is not None:
+            data.edge_attr = torch.cat([data.edge_attr, edge_attr], dim=1)
+        else:
+            data.edge_attr = edge_attr
     else:
-        data.edge_attr = None
+        if not hasattr(data, 'edge_attr'):
+            data.edge_attr = None
 
     return data
 

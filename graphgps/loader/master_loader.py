@@ -713,10 +713,8 @@ def preformat_ShapeNet(dataset_dir):
 
     # create k-NN graph from 'pos' attribute
     logging.info("Creating k-NN graph from 'pos' attribute ...")
-    pre_transform_in_memory(dataset, partial(generate_knn_graph_from_pos, k=6, distance_edge_attr=False), show_progress=True)
+    pre_transform_in_memory(dataset, partial(generate_knn_graph_from_pos, k=8, distance_edge_attr=False), show_progress=True)   # k=8 is chosen because it is the k for which PointViG (https://arxiv.org/pdf/2407.00921v1) performed best on ModelNet40
     # pre_transform_in_memory(dataset, generate_chain_graph)
-
-    
 
     return dataset
 
@@ -738,7 +736,7 @@ def preformat_S3DIS(dataset_dir):
 
     # create k-NN graph from 'pos' attribute
     logging.info("Creating k-NN graph from 'pos' attribute ...")
-    pre_transform_in_memory(dataset, partial(generate_knn_graph_from_pos, k=6, distance_edge_attr=False), show_progress=True)
+    pre_transform_in_memory(dataset, partial(generate_knn_graph_from_pos, k=32, distance_edge_attr=False), show_progress=True)  # k=32 is chosen because it is the k for which PointViG (https://arxiv.org/pdf/2407.00921v1) performed best on S3DIS
 
     s_dict = dataset.get_idx_split()
     dataset.split_idxs = [s_dict[s] for s in ['train', 'val', 'test']]
