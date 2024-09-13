@@ -68,7 +68,7 @@ def train_epoch(logger, loader, model, optimizer, scheduler, batch_accumulation)
 def eval_epoch(logger, loader, model, split='val'):
     model.eval()
     time_start = time.time()
-    for batch in loader:
+    for batch in tqdm(loader):
         batch.split = split
         batch.to(torch.device(cfg.device))
         if cfg.gnn.head == 'inductive_edge':

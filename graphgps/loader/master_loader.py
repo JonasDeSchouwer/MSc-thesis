@@ -21,7 +21,7 @@ from graphgps.loader.dataset.aqsol_molecules import AQSOL
 from graphgps.loader.dataset.coco_superpixels import COCOSuperpixels
 from graphgps.loader.dataset.malnet_tiny import MalNetTiny
 from graphgps.loader.dataset.voc_superpixels import VOCSuperpixels
-# from graphgps.loader.dataset.shapenet_part import ShapeNet
+from graphgps.loader.dataset.modelnet import ModelNet
 from graphgps.loader.dataset.s3dis import S3DIS
 from graphgps.loader.split_generator import (prepare_splits,
                                              set_dataset_splits)
@@ -178,6 +178,12 @@ def load_dataset_master(format, name, dataset_dir):
 
         elif pyg_dataset_id == 'S3DIS':
             dataset = preformat_S3DIS(dataset_dir)
+
+        elif pyg_dataset_id == 'ModelNet10':
+            dataset = preformat_ModelNet(dataset_dir, name='10')
+
+        elif pyg_dataset_id == 'ModelNet40':
+            dataset = preformat_ModelNet(dataset_dir, name='40')
 
         else:
             raise ValueError(f"Unexpected PyG Dataset identifier: {format}")
@@ -734,12 +740,40 @@ def preformat_S3DIS(dataset_dir):
     # )
     dataset = S3DIS(root=dataset_dir)
 
+    # add 'pos' attribute to 'x' attribute
+    logging.info("Adding 'pos' attribute to 'x' attribute ...")
+    pre_transform_in_memory(dataset, partial(concat_x_and_pos))
+
     # create k-NN graph from 'pos' attribute
     logging.info("Creating k-NN graph from 'pos' attribute ...")
     pre_transform_in_memory(dataset, partial(generate_knn_graph_from_pos, k=32, distance_edge_attr=False), show_progress=True)  # k=32 is chosen because it is the k for which PointViG (https://arxiv.org/pdf/2407.00921v1) performed best on S3DIS
 
     s_dict = dataset.get_idx_split()
     dataset.split_idxs = [s_dict[s] for s in ['train', 'val', 'test']]
+
+    return dataset
+
+def preformat_ModelNet(dataset_dir, name):
+    """Load and preformat ModelNet datasets.
+
+    Args:
+        dataset_dir: path where to store the cached dataset
+        name: select '10' or '40' classes version of ModelNet
+    """
+    if name not in ['10', '40']:
+        raise ValueError(f"Unexpected subset choice for ModelNet dataset: {name}")
+    dataset = ModelNet(root=dataset_dir, name=name)
+
+    s_dict = dataset.get_idx_split()
+    dataset.split_idxs = [s_dict[s] for s in ['train', 'val', 'test']]
+
+    # add 'pos' attribute to 'x' attribute
+    logging.info("Adding 'pos' attribute to 'x' attribute ...")
+    pre_transform_in_memory(dataset, partial(concat_x_and_pos))
+
+    # create k-NN graph from 'pos' attribute
+    logging.info("Creating k-NN graph from 'pos' attribute ...")
+    pre_transform_in_memory(dataset, partial(generate_knn_graph_from_pos, k=6, distance_edge_attr=False), show_progress=True)
 
     return dataset
 
