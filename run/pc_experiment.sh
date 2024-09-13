@@ -16,7 +16,7 @@ function run_repeats {
     cfg_overrides=$3
 
     # --- Do the desired cfg overrides here ---
-    cfg_overrides="${cfg_overrides} cfg.train.ckpt_best True"
+    cfg_overrides="${cfg_overrides} train.ckpt_best True"
 
     # --- Set the dataset-specific cfg overrides ---
     # if dataset is ShapeNet-Part
@@ -90,7 +90,7 @@ function run_kmip {
     for lr in 0.0001 0.0005; do
     for layers in 4 8 12; do
     for kq_dim in 5 10; do
-    run_repeats ${dataset} GPS+SparseAttention-${layers}-${kq_dim} "optim.base_lr $lr name_tag lr-${lr}"
+    run_repeats ${dataset} GPS+SparseAttention-${layers}l-${kq_dim} "optim.base_lr $lr name_tag lr-${lr}"
     done
     done
     done
