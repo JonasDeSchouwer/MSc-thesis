@@ -30,7 +30,7 @@ function run_repeats {
         cfg_overrides="${cfg_overrides} gnn.head graph dataset.format PyG-ModelNet40 metric_best accuracy"
     # elif dataset is S3DIS
     elif [[ $dataset == "S3DIS" ]]; then
-        cfg_overrides="${cfg_overrides} gnn.head inductive_node dataset.format PyG-S3DIS metric_best f1"
+        cfg_overrides="${cfg_overrides} gnn.head inductive_node dataset.format PyG-S3DISOnDisk metric_best f1"
     fi
 
     cfg_file="configs/PC/${method}.yaml"
@@ -126,7 +126,7 @@ slurm_directive="
 #SBATCH --time=12:00:00
 #SBATCH --mem=60G
 #SBATCH --gres=gpu:1
-#SBATCH --constraint="gpu_mem:32GB,gpu_sku:V100"
+#SBATCH --constraint="gpu_mem:16GB,gpu_sku:V100"
 "
 
 

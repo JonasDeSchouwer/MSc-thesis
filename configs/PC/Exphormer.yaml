@@ -26,6 +26,7 @@ train:
   batch_size: 16
   eval_period: 1
   ckpt_period: 100
+  shuffle: False
 model:
   type: MultiModel
   loss_fun: weighted_cross_entropy # because there is a large class imbalance

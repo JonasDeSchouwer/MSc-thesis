@@ -23,6 +23,7 @@ from graphgps.loader.dataset.malnet_tiny import MalNetTiny
 from graphgps.loader.dataset.voc_superpixels import VOCSuperpixels
 from graphgps.loader.dataset.modelnet import ModelNet
 from graphgps.loader.dataset.s3dis import S3DIS
+from graphgps.loader.dataset.s3dis_on_disk import S3DISOnDisk
 from graphgps.loader.split_generator import (prepare_splits,
                                              set_dataset_splits)
 from graphgps.transform.posenc_stats import compute_posenc_stats
@@ -39,7 +40,7 @@ from graphgps.transform.dist_transforms import (add_dist_features, add_reverse_e
                                                  effective_resistances_from_embedding)
 
 
-def log_loaded_dataset(dataset, format, name):
+def log_loaded_in_memory_dataset(dataset, format, name):
     logging.info(f"[*] Loaded dataset '{name}' from '{format}':")
     logging.info(f"  {dataset.data}")
     # logging.info(f"  undirected: {dataset[0].is_undirected()}")
@@ -91,6 +92,45 @@ def log_loaded_dataset(dataset, format, name):
     #         f'     bin {i}: [{start:.2f}, {end:.2f}]: '
     #         f'{hist[i]} ({hist[i] / hist.sum() * 100:.2f}%)'
     #     )
+
+def log_loaded_on_disk_dataset(dataset, format, name):
+    sample = dataset[0]
+    
+    logging.info(f"[*] Loaded dataset '{name}' from '{format}':")
+    logging.info(f"  undirected: {sample.is_undirected()}")
+    logging.info(f"  num graphs: {len(dataset)}")
+
+    # logging.info(f"  num node features: {dataset.num_node_features}")
+    # logging.info(f"  num edge features: {dataset.num_edge_features}")
+    if hasattr(dataset, 'num_tasks'):
+        logging.info(f"  num tasks: {dataset.num_tasks}")
+
+    if hasattr(sample, 'y') and sample.y is not None:
+        if isinstance(sample.y, list):
+            # A special case for ogbg-code2 dataset.
+            logging.info(f"  num classes: n/a")
+        elif sample.y.numel() == sample.y.size(0) and \
+                torch.is_floating_point(sample.y):
+            logging.info(f"  num classes: (appears to be a regression task)")
+        else:
+            if hasattr(dataset, 'num_classes'):
+                logging.info(f"  num classes: {dataset.num_classes}")
+    elif hasattr(sample, 'train_edge_label') or hasattr(sample, 'edge_label'):
+        # Edge/link prediction task.
+        if hasattr(sample, 'train_edge_label'):
+            labels = sample.train_edge_label  # Transductive link task
+        else:
+            labels = sample.edge_label  # Inductive link task
+        if labels.numel() == labels.size(0) and \
+                torch.is_floating_point(labels):
+            logging.info(f"  num edge classes: (probably a regression task)")
+        else:
+            logging.info(f"  num edge classes: {len(torch.unique(labels))}")
+
+    logging.info("\nInfo about the first graph:")
+    logging.info(f"  num nodes: {sample.x.size(0)}")
+    logging.info(f"  num edges: {sample.edge_index.size(1)}")
+
 
 
 @register_loader('custom_master_loader')
@@ -178,6 +218,9 @@ def load_dataset_master(format, name, dataset_dir):
 
         elif pyg_dataset_id == 'S3DIS':
             dataset = preformat_S3DIS(dataset_dir)
+        
+        elif pyg_dataset_id == 'S3DISOnDisk':
+            dataset = preformat_S3DISOnDisk(dataset_dir)
 
         elif pyg_dataset_id == 'ModelNet10':
             dataset = preformat_ModelNet(dataset_dir, name='10')
@@ -225,7 +268,11 @@ def load_dataset_master(format, name, dataset_dir):
             raise ValueError(f"Unsupported OGB(-derived) dataset: {name}")
     else:
         raise ValueError(f"Unknown data format: {format}")
-    log_loaded_dataset(dataset, format, name)
+
+    if hasattr(dataset, 'is_on_disk_dataset') and dataset.is_on_disk_dataset:
+        log_loaded_on_disk_dataset(dataset, format, name)
+    else:
+        log_loaded_in_memory_dataset(dataset, format, name)
 
     # Precompute necessary statistics for positional encodings.
     pe_enabled_list = []
@@ -747,6 +794,33 @@ def preformat_S3DIS(dataset_dir):
     # create k-NN graph from 'pos' attribute
     logging.info("Creating k-NN graph from 'pos' attribute ...")
     pre_transform_in_memory(dataset, partial(generate_knn_graph_from_pos, k=32, distance_edge_attr=False), show_progress=True)  # k=32 is chosen because it is the k for which PointViG (https://arxiv.org/pdf/2407.00921v1) performed best on S3DIS
+
+    s_dict = dataset.get_idx_split()
+    dataset.split_idxs = [s_dict[s] for s in ['train', 'val', 'test']]
+
+    return dataset
+
+def preformat_S3DISOnDisk(dataset_dir):
+    """
+    Load and preformat S3DIS dataset on disk.
+    
+    Args:
+        dataset_dir: path where to store the cached dataset
+    
+    Returns:
+        PyG dataset object
+    """
+    # dataset = join_dataset_splits(
+    #     [S3DIS(root=dataset_dir, split=split)
+    #      for split in ['train', 'val', 'test']]
+    # )
+    dataset = S3DISOnDisk(root=dataset_dir)
+
+    # add 'pos' attribute to 'x' attribute
+    # not necessary because this is done inside the dataset class
+
+    # create k-NN graph from 'pos' attribute
+    # not necessary because this is done inside the dataset class
 
     s_dict = dataset.get_idx_split()
     dataset.split_idxs = [s_dict[s] for s in ['train', 'val', 'test']]

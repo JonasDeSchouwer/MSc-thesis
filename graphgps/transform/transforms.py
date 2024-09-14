@@ -105,22 +105,24 @@ def clip_graphs_to_size(data, size_limit=5000):
         return data
 
 
-def generate_knn_graph_from_pos(data: torch_geometric.data.Data, k: int, distance_edge_attr: bool = True):
-    # compute on cuda if available
-    if torch.cuda.is_available():
-        pos = data.pos.cuda()
+def generate_knn_graph_from_pos(data: torch_geometric.data.Data, k: int, distance_edge_attr: bool = True, custom_pos=None):
+    if custom_pos is not None:
+        pos = custom_pos
     else:
         pos = data.pos
+    # compute on cuda if available
+    if torch.cuda.is_available():
+        pos = pos.cuda()
     edge_index = torch_geometric.nn.knn_graph(
         pos,
         k=k,
         loop=False,
     )
-    data.edge_index = edge_index.to(data.pos.device)
+    data.edge_index = edge_index.to(data.x.device)
     
     # compute the distance as edge attribute
     if distance_edge_attr:
-        edge_attr = torch.norm(data.pos[edge_index[0]] - data.pos[edge_index[1]], dim=1).unsqueeze(-1).to(data.pos.device)
+        edge_attr = torch.norm(pos[edge_index[0]] - pos[edge_index[1]], dim=1).unsqueeze(-1).to(data.x.device)
         if hasattr(data, 'edge_attr') and data.edge_attr is not None:
             data.edge_attr = torch.cat([data.edge_attr, edge_attr], dim=1)
         else:
