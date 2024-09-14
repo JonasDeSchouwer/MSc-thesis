@@ -2,7 +2,7 @@ out_dir: results
 metric_best: determine_in_script
 wandb:
   use: True
-  project: S3DIS
+  project: PointClouds
 dataset:
   format: determine_in_script
   # name: 

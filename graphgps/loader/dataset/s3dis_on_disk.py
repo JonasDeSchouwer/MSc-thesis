@@ -56,10 +56,9 @@ class S3DISOnDisk(Dataset):
         assert test_area >= 1 and test_area <= 6
         self.test_area = test_area
 
-        self.CHUNK_SIZE = 3000        # hard coded for now: number of graphs to save in one file
+        self.CHUNK_SIZE = 300        # hard coded for now: number of graphs to save in one file
 
         super().__init__(root, transform, pre_transform, pre_filter)
-        self.idx_split = torch.load(self.processed_paths[0])
 
         # holds the chunks in memory, the oldest at index 0
         # if the number of chunks in memory exceeds max_num_chunks_in_memory, the oldest chunk is removed
@@ -184,7 +183,7 @@ class S3DISOnDisk(Dataset):
         del test_graphs_buffer
         
         # do sanity check and log the range of graph indices in each chunk
-        logging.info("self.chunk_contents.keys():", self.chunk_contents.keys())
+        logging.info("self.chunk_contents.keys():", list(self.chunk_contents.keys()))
         for chunk_name, graph_indices in self.chunk_contents.items():
             if len(graph_indices) == 0:
                 logging.info(f"Chunk {chunk_name} is empty")

@@ -22,6 +22,7 @@ from graphgps.loader.dataset.coco_superpixels import COCOSuperpixels
 from graphgps.loader.dataset.malnet_tiny import MalNetTiny
 from graphgps.loader.dataset.voc_superpixels import VOCSuperpixels
 from graphgps.loader.dataset.modelnet import ModelNet
+from graphgps.loader.dataset.modelnet_on_disk import ModelNetOnDisk
 from graphgps.loader.dataset.s3dis import S3DIS
 from graphgps.loader.dataset.s3dis_on_disk import S3DISOnDisk
 from graphgps.loader.split_generator import (prepare_splits,
@@ -225,8 +226,14 @@ def load_dataset_master(format, name, dataset_dir):
         elif pyg_dataset_id == 'ModelNet10':
             dataset = preformat_ModelNet(dataset_dir, name='10')
 
+        elif pyg_dataset_id == 'ModelNet10OnDisk':
+            dataset = preformat_ModelNetOnDisk(dataset_dir, name='10')
+
         elif pyg_dataset_id == 'ModelNet40':
             dataset = preformat_ModelNet(dataset_dir, name='40')
+
+        elif pyg_dataset_id == 'ModelNet40OnDisk':
+            dataset = preformat_ModelNetOnDisk(dataset_dir, name='40')
 
         else:
             raise ValueError(f"Unexpected PyG Dataset identifier: {format}")
@@ -810,10 +817,6 @@ def preformat_S3DISOnDisk(dataset_dir):
     Returns:
         PyG dataset object
     """
-    # dataset = join_dataset_splits(
-    #     [S3DIS(root=dataset_dir, split=split)
-    #      for split in ['train', 'val', 'test']]
-    # )
     dataset = S3DISOnDisk(root=dataset_dir)
 
     # add 'pos' attribute to 'x' attribute
@@ -848,6 +851,31 @@ def preformat_ModelNet(dataset_dir, name):
     # create k-NN graph from 'pos' attribute
     logging.info("Creating k-NN graph from 'pos' attribute ...")
     pre_transform_in_memory(dataset, partial(generate_knn_graph_from_pos, k=8, distance_edge_attr=False), show_progress=True)   # k=8 is chosen because it is the k for which PointViG (https://arxiv.org/pdf/2407.00921v1) performed best on ModelNet40
+
+    return dataset
+
+def preformat_ModelNetOnDisk(dataset_dir, name):
+    """
+    Load and preformat S3DIS dataset on disk.
+    
+    Args:
+        dataset_dir: path where to store the cached dataset
+    
+    Returns:
+        PyG dataset object
+    """
+    if name not in ['10', '40']:
+        raise ValueError(f"Unexpected subset choice for ModelNet dataset: {name}")
+    dataset = ModelNetOnDisk(root=dataset_dir, name=name)
+    
+    # add 'pos' attribute to 'x' attribute
+    # not necessary because this is done inside the dataset class
+
+    # create k-NN graph from 'pos' attribute
+    # not necessary because this is done inside the dataset class
+
+    s_dict = dataset.get_idx_split()
+    dataset.split_idxs = [s_dict[s] for s in ['train', 'val', 'test']]
 
     return dataset
 

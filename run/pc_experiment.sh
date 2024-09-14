@@ -24,13 +24,13 @@ function run_repeats {
         cfg_overrides="${cfg_overrides} gnn.head inductive_node dataset.format PyG-ShapeNet metric_best f1 wandb.project ShapeNet"
     # elif dataset is ModelNet10
     elif [[ $dataset == "ModelNet10" ]]; then
-        cfg_overrides="${cfg_overrides} gnn.head graph dataset.format PyG-ModelNet10 metric_best accuracy wandb.project ModelNet10"
+        cfg_overrides="${cfg_overrides} gnn.head graph dataset.format PyG-ModelNet10OnDisk metric_best accuracy wandb.project ModelNet10 dataset.dir ${SCRATCH}/GraphGPS/datasets train.batch_size 8"
     # elif dataset is ModelNet40
     elif [[ $dataset == "ModelNet40" ]]; then
-        cfg_overrides="${cfg_overrides} gnn.head graph dataset.format PyG-ModelNet40 metric_best accuracy wandb.project ModelNet40"
+        cfg_overrides="${cfg_overrides} gnn.head graph dataset.format PyG-ModelNet40OnDisk metric_best accuracy wandb.project ModelNet40 dataset.dir ${SCRATCH}/GraphGPS/datasets train.batch_size 4"
     # elif dataset is S3DIS
     elif [[ $dataset == "S3DIS" ]]; then
-        cfg_overrides="${cfg_overrides} gnn.head inductive_node dataset.format PyG-S3DISOnDisk metric_best f1 wandb.project S3DIS"
+        cfg_overrides="${cfg_overrides} gnn.head inductive_node dataset.format PyG-S3DISOnDisk metric_best f1 wandb.project S3DIS dataset.dir ${SCRATCH}/GraphGPS/datasets"
     fi
 
     cfg_file="configs/PC/${method}.yaml"
@@ -38,6 +38,13 @@ function run_repeats {
         echo "WARNING: Config does not exist: $cfg_file"
         echo "SKIPPING!"
         return 1
+    fi
+
+    if [[ $dataset == "ModelNet"* || $dataset == "S3DIS" ]]; then
+        move_to_scratch="mkdir -p $SCRATCH/GraphGPS/datasets/${dataset}OnDisk; cp -r $DATA/GraphGPS/datasets/${dataset}OnDisk $SCRATCH/GraphGPS/datasets"
+        echo "Moving dataset to scratch"
+    else
+        move_to_scratch=""
     fi
 
     main="$DATA/.conda/envs/exphormer/bin/python -O main.py --cfg ${cfg_file}"
@@ -62,6 +69,7 @@ ${slurm_directive}
 ${environment_setup}
 nvidia-smi
 lscpu
+${move_to_scratch}
 ${main} --repeat 1 seed ${SEED} ${common_params}
 EOT
     done
