@@ -21,16 +21,16 @@ function run_repeats {
     # --- Set the dataset-specific cfg overrides ---
     # if dataset is ShapeNet-Part
     if [[ $dataset == "ShapeNet-Part" ]]; then
-        cfg_overrides="${cfg_overrides} gnn.head inductive_node dataset.format PyG-ShapeNet metric_best f1"
+        cfg_overrides="${cfg_overrides} gnn.head inductive_node dataset.format PyG-ShapeNet metric_best f1 wandb.project ShapeNet"
     # elif dataset is ModelNet10
     elif [[ $dataset == "ModelNet10" ]]; then
-        cfg_overrides="${cfg_overrides} gnn.head graph dataset.format PyG-ModelNet10 metric_best accuracy"
+        cfg_overrides="${cfg_overrides} gnn.head graph dataset.format PyG-ModelNet10 metric_best accuracy wandb.project ModelNet10"
     # elif dataset is ModelNet40
     elif [[ $dataset == "ModelNet40" ]]; then
-        cfg_overrides="${cfg_overrides} gnn.head graph dataset.format PyG-ModelNet40 metric_best accuracy"
+        cfg_overrides="${cfg_overrides} gnn.head graph dataset.format PyG-ModelNet40 metric_best accuracy wandb.project ModelNet40"
     # elif dataset is S3DIS
     elif [[ $dataset == "S3DIS" ]]; then
-        cfg_overrides="${cfg_overrides} gnn.head inductive_node dataset.format PyG-S3DISOnDisk metric_best f1"
+        cfg_overrides="${cfg_overrides} gnn.head inductive_node dataset.format PyG-S3DISOnDisk metric_best f1 wandb.project S3DIS"
     fi
 
     cfg_file="configs/PC/${method}.yaml"
