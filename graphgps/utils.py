@@ -128,7 +128,9 @@ def make_wandb_name(cfg):
     if cfg.model.type in ['gnn', 'custom_gnn']:
         model_name += f".{cfg.gnn.layer_type}"
     elif cfg.model.type == 'GPSModel':
-        model_name = f"GPS.{cfg.gt.layer_type}"
+        model_name = f"GPS.{cfg.gt.layer_type}.{cfg.gt.layers}l.{cfg.gt.n_heads}h"
+        if cfg.gt.layer_type.split('+')[1] == 'SparseAttention':
+            model_name += f".{cfg.gt.sparse.kq_dim}kq"
     elif cfg.model.type == 'MultiModel':
         model_name = f"Multi.{cfg.gt.layer_type}"
     model_name += f".{cfg.name_tag}" if cfg.name_tag else ""
