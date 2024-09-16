@@ -39,7 +39,7 @@ def _is_OOM_error(e: RuntimeError, batch):
         raise e
 
 
-def _get_single_batch_gradients(model, batch, loader):
+def _get_single_batch_gradients(model, batch, loader, batch_accumulation):
     batch.split = 'train'
     batch.to(torch.device(cfg.device))
     pred, true = model(batch)
@@ -58,6 +58,8 @@ def _get_single_batch_gradients(model, batch, loader):
         _true = true.detach().to('cpu', non_blocking=True)
         _pred = pred_score.detach().to('cpu', non_blocking=True)
 
+    # normalize for batch accumulation
+    loss /= batch_accumulation
     loss.backward()
 
     # returned for logging purposes
@@ -81,7 +83,7 @@ def train_epoch(logger, loader, model, optimizer, scheduler, batch_accumulation)
 
         # --- TRY 0 ---
         try:
-            _true, _pred, loss = _get_single_batch_gradients(model, batch, loader)
+            _true, _pred, loss = _get_single_batch_gradients(model, batch, loader, batch_accumulation)
             get_gradients_succeeded = True
         except RuntimeError as e:
             if _is_OOM_error(e, batch):
@@ -100,7 +102,7 @@ def train_epoch(logger, loader, model, optimizer, scheduler, batch_accumulation)
             losses = []
             for data in data_list:
                 try:
-                    _true_batch, _pred_batch, loss_batch = _get_single_batch_gradients(model, Batch.from_data_list([data]), loader)
+                    _true_batch, _pred_batch, loss_batch = _get_single_batch_gradients(model, Batch.from_data_list([data]), loader, batch_accumulation)
                     _trues.append(_true_batch)
                     _preds.append(_pred_batch)
                     losses.append(loss_batch)

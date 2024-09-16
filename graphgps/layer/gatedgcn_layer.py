@@ -4,6 +4,7 @@ import torch.nn.functional as F
 import torch_geometric.nn as pyg_nn
 from torch_geometric.graphgym.models.layer import LayerConfig
 from torch_scatter import scatter
+from torch.utils.checkpoint import checkpoint
 
 from torch_geometric.graphgym.config import cfg
 from torch_geometric.graphgym.register import register_layer
@@ -39,9 +40,7 @@ class GatedGCNLayer(pyg_nn.conv.MessagePassing):
         self.residual = residual
         self.e = None
 
-    def forward(self, batch):
-        x, e, edge_index = batch.x, batch.edge_attr, batch.edge_index
-
+    def _internal_forward(self, x, e, edge_index, pe_EquivStableLapPE):
         """
         x               : [n_nodes, in_dim]
         e               : [n_edges, in_dim]
@@ -59,7 +58,7 @@ class GatedGCNLayer(pyg_nn.conv.MessagePassing):
 
         # Handling for Equivariant and Stable PE using LapPE
         # ICLR 2022 https://openreview.net/pdf?id=e95i1IHcWj
-        pe_LapPE = batch.pe_EquivStableLapPE if self.EquivStablePE else None
+        pe_LapPE = pe_EquivStableLapPE if self.EquivStablePE else None
 
         x, e = self.propagate(edge_index,
                               Bx=Bx, Dx=Dx, Ex=Ex, Ce=Ce,
@@ -78,6 +77,23 @@ class GatedGCNLayer(pyg_nn.conv.MessagePassing):
         if self.residual:
             x = x_in + x
             e = e_in + e
+
+        return x, e
+
+
+    def forward(self, batch):
+        x, e, edge_index = batch.x, batch.edge_attr, batch.edge_index
+
+        """
+        x               : [n_nodes, in_dim]
+        e               : [n_edges, in_dim]
+        edge_index      : [2, n_edges]
+        """
+
+        x, e = checkpoint(GatedGCNLayer._internal_forward,
+            self, x, e, edge_index,
+            batch.pe_EquivStableLapPE if self.EquivStablePE else None
+        )
 
         batch.x = x
         batch.edge_attr = e
