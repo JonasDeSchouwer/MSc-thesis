@@ -109,6 +109,7 @@ def generate_knn_graph_from_pos(data: torch_geometric.data.Data, k: int, distanc
     if custom_pos is not None:
         pos = custom_pos
     else:
+        assert hasattr(data, 'pos'), 'Data object does not have a pos attribute'
         pos = data.pos
     # compute on cuda if available
     if torch.cuda.is_available():

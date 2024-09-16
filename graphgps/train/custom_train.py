@@ -6,6 +6,7 @@ import torch
 import torch.nn.functional as F
 from tqdm import tqdm
 
+from torch_geometric.data.batch import Batch
 from torch_geometric.graphgym.checkpoint import load_ckpt, save_ckpt, clean_ckpt
 from torch_geometric.graphgym.config import cfg
 from torch_geometric.graphgym.loss import compute_loss
@@ -26,28 +27,100 @@ def arxiv_cross_entropy(pred, true, split_idx):
     return loss, pred_score
 
 
+def _is_OOM_error(e: RuntimeError, batch):
+    """
+    Args:
+        e: RuntimeError
+        which_pass: str
+    """
+    if "CUDA out of memory" in str(e):
+        return True
+    else:
+        raise e
+
+
+def _get_single_batch_gradients(model, batch, loader):
+    batch.split = 'train'
+    batch.to(torch.device(cfg.device))
+    pred, true = model(batch)
+
+    if cfg.dataset.name == 'ogbg-code2':
+        loss, pred_score = subtoken_cross_entropy(pred, true)
+        _true = true
+        _pred = pred_score
+    elif cfg.dataset.name == 'ogbn-arxiv':
+        split_idx = loader.dataset.split_idx['train'].to(torch.device(cfg.device))
+        loss, pred_score = arxiv_cross_entropy(pred, true, split_idx)
+        _true = true[split_idx].detach().to('cpu', non_blocking=True)
+        _pred = pred_score.detach().to('cpu', non_blocking=True)
+    else:
+        loss, pred_score = compute_loss(pred, true)
+        _true = true.detach().to('cpu', non_blocking=True)
+        _pred = pred_score.detach().to('cpu', non_blocking=True)
+
+    loss.backward()
+
+    # returned for logging purposes
+    return _true, _pred, loss
+    
+
 def train_epoch(logger, loader, model, optimizer, scheduler, batch_accumulation):
     model.train()
     optimizer.zero_grad()
     time_start = time.time()
     for iter, batch in tqdm(enumerate(loader)):
-        batch.split = 'train'
-        batch.to(torch.device(cfg.device))
-        pred, true = model(batch)
-        if cfg.dataset.name == 'ogbg-code2':
-            loss, pred_score = subtoken_cross_entropy(pred, true)
-            _true = true
-            _pred = pred_score
-        elif cfg.dataset.name == 'ogbn-arxiv':
-            split_idx = loader.dataset.split_idx['train'].to(torch.device(cfg.device))
-            loss, pred_score = arxiv_cross_entropy(pred, true, split_idx)
-            _true = true[split_idx].detach().to('cpu', non_blocking=True)
-            _pred = pred_score.detach().to('cpu', non_blocking=True)
-        else:
-            loss, pred_score = compute_loss(pred, true)
-            _true = true.detach().to('cpu', non_blocking=True)
-            _pred = pred_score.detach().to('cpu', non_blocking=True)
-        loss.backward()
+
+        # we implement a system to make performance degradation due to OOM errors more graceful
+        # for each batch:
+        # try 0: process the entire batch on the GPU
+        # try 1: split the batch into its components and process them one by one on the GPU. Skip the ones that don't work
+        # (never done: CPU processing, as it is too slow)
+
+        batch_copy = batch.clone()
+        get_gradients_succeeded = False   
+
+        # --- TRY 0 ---
+        try:
+            _true, _pred, loss = _get_single_batch_gradients(model, batch, loader)
+            get_gradients_succeeded = True
+        except RuntimeError as e:
+            if _is_OOM_error(e, batch):
+                logging.info(f"OOM error occurred on batch {batch}. Retrying after splitting batch.")
+        
+        # --- TRY 1 ---
+        if not get_gradients_succeeded:
+            # because the model may have modified the batch
+            batch = batch_copy.clone()
+
+            # split the batch into its components
+            data_list = batch.to_data_list()
+
+            _trues = []
+            _preds = []
+            losses = []
+            for data in data_list:
+                try:
+                    _true_batch, _pred_batch, loss_batch = _get_single_batch_gradients(model, Batch.from_data_list([data]), loader)
+                    _trues.append(_true_batch)
+                    _preds.append(_pred_batch)
+                    losses.append(loss_batch)
+                except RuntimeError as e:
+                    if _is_OOM_error(e, batch):
+                        continue    # skip this element of the batch
+            
+            # if all elements of the batch failed, skip the batch
+            if len(_trues) == 0:
+                logging.info("OOM error occurred on all elements of batch. Skipping batch.")
+                continue
+            else:
+                # still report how many elements of the batch failed
+                logging.info(f"OOM error occurred on {len(data_list) - len(_trues)} elements of batch.")
+
+            # otherwise, aggregate the _trues, _preds, and losses for logging purposes
+            _true = torch.cat(_trues, dim=0)
+            _pred = torch.cat(_preds, dim=0)
+            loss = torch.stack(losses).mean()
+
         # Parameters update after accumulating gradients for given num. batches.
         if ((iter + 1) % batch_accumulation == 0) or (iter + 1 == len(loader)):
             if cfg.optim.clip_grad_norm:
