@@ -7,11 +7,14 @@ from performer_pytorch import SelfAttention
 from torch_geometric.data import Batch
 from torch_geometric.nn import Linear as Linear_pyg
 from torch_geometric.utils import to_dense_batch
+from torch.utils.checkpoint import checkpoint
 
 from graphgps.layer.gatedgcn_layer import GatedGCNLayer
 from graphgps.layer.gine_conv_layer import GINEConvESLapPE
 from graphgps.layer.bigbird_layer import SingleBigBirdLayer
 from graphgps.layer.sparse_attention_layer import SparseAttention
+
+from torch_geometric.graphgym.config import cfg
 
 
 class GPSLayer(nn.Module):
@@ -141,6 +144,26 @@ class GPSLayer(nn.Module):
         self.ff_dropout1 = nn.Dropout(dropout)
         self.ff_dropout2 = nn.Dropout(dropout)
 
+    def _apply_self_attn(self, h, graph_ids):
+        """Apply self-attention to the graph nodes.
+        """
+
+        # h_dense: [num_graphs, N_max, F_node]
+        # mask: [num_graphs, N_max] -> each entry is True if it is a 'real' node, and False if it is a 'padding' node
+        h_dense, mask = to_dense_batch(h, graph_ids)
+        if self.global_model_type == 'Transformer':
+            h_attn = self._sa_block(h_dense, None, ~mask)[mask]
+        elif self.global_model_type == 'Performer':
+            h_attn = self.self_attn(h_dense, mask=mask)[mask]
+        elif self.global_model_type == 'BigBird':
+            h_attn = self.self_attn(h_dense, attention_mask=mask)
+        elif self.global_model_type == 'SparseAttention':
+            h_attn = self.self_attn(h_dense)[mask]
+        else:
+            raise RuntimeError(f"Unexpected {self.global_model_type}")
+
+        return h_attn
+
     def forward(self, batch):
         # batch.num_graphs
         # batch.batch: [N_total] -> each entry is which graph that node belongs to
@@ -184,19 +207,13 @@ class GPSLayer(nn.Module):
 
         # Multi-head attention.
         if self.self_attn is not None:
-            # h_dense: [num_graphs, N_max, F_node]
-            # mask: [num_graphs, N_max] -> each entry is True if it is a 'real' node, and False if it is a 'padding' node
-            h_dense, mask = to_dense_batch(h, batch.batch)
-            if self.global_model_type == 'Transformer':
-                h_attn = self._sa_block(h_dense, None, ~mask)[mask]
-            elif self.global_model_type == 'Performer':
-                h_attn = self.self_attn(h_dense, mask=mask)[mask]
-            elif self.global_model_type == 'BigBird':
-                h_attn = self.self_attn(h_dense, attention_mask=mask)
-            elif self.global_model_type == 'SparseAttention':
-                h_attn = self.self_attn(h_dense)[mask]
+            
+            if cfg.share.gradient_checkpointing:
+                h_attn = checkpoint(GPSLayer._apply_self_attn,
+                    self, h, batch.batch
+                )
             else:
-                raise RuntimeError(f"Unexpected {self.global_model_type}")
+                h_attn = self._apply_self_attn(h, batch.batch)
 
             h_attn = self.dropout_attn(h_attn)
             h_attn = h_in1 + h_attn  # Residual connection.

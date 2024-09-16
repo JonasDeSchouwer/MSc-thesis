@@ -137,9 +137,15 @@ class ModelNetOnDisk(Dataset):
             for target, category in enumerate(categories):
                 folder = osp.join(self.raw_dir, category, split)
                 if split == 'train':
-                    train_paths.extend(glob.glob(f'{folder}/{category}_*.off'))
+                    train_paths.extend([
+                        (path, target) for path
+                        in glob.glob(f'{folder}/{category}_*.off')
+                    ])
                 else:
-                    test_paths.extend(glob.glob(f'{folder}/{category}_*.off'))
+                    test_paths.extend([
+                        (path, target) for path
+                        in glob.glob(f'{folder}/{category}_*.off')
+                    ])
 
         # shuffle the train and test paths
         random.shuffle(train_paths)
@@ -147,7 +153,7 @@ class ModelNetOnDisk(Dataset):
 
         # save the chunks of the train set to disk
         current_train_chunk_id = 0
-        for path in train_paths:
+        for path, target in train_paths:
             data: Data = read_off(path)
             data.y = torch.tensor([target])
             train_graphs_buffer.append(data)
@@ -172,7 +178,7 @@ class ModelNetOnDisk(Dataset):
 
         # save the chunks of the test set to disk
         current_test_chunk_id = 0
-        for path in test_paths:
+        for path, target in test_paths:
             data: Data = read_off(path)
             data.y = torch.tensor([target])
             test_graphs_buffer.append(data)

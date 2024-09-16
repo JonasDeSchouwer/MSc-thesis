@@ -90,10 +90,16 @@ class GatedGCNLayer(pyg_nn.conv.MessagePassing):
         edge_index      : [2, n_edges]
         """
 
-        x, e = checkpoint(GatedGCNLayer._internal_forward,
-            self, x, e, edge_index,
-            batch.pe_EquivStableLapPE if self.EquivStablePE else None
-        )
+        if cfg.share.gradient_checkpointing:
+            x, e = checkpoint(GatedGCNLayer._internal_forward,
+                self, x, e, edge_index,
+                batch.pe_EquivStableLapPE if self.EquivStablePE else None
+            )
+        else:
+            x, e = self._internal_forward(
+                x, e, edge_index,
+                batch.pe_EquivStableLapPE if self.EquivStablePE else None
+            )
 
         batch.x = x
         batch.edge_attr = e

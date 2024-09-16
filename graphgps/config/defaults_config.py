@@ -33,3 +33,5 @@ def extended_cfg(cfg):
     cfg.train.ckpt_best = False
 
     cfg.train.shuffle = True
+
+    cfg.share.gradient_checkpointing = False

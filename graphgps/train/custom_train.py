@@ -27,7 +27,7 @@ def arxiv_cross_entropy(pred, true, split_idx):
     return loss, pred_score
 
 
-def _is_OOM_error(e: RuntimeError, batch):
+def _is_OOM_error(e: RuntimeError):
     """
     Args:
         e: RuntimeError
@@ -75,7 +75,8 @@ def train_epoch(logger, loader, model, optimizer, scheduler, batch_accumulation)
         # we implement a system to make performance degradation due to OOM errors more graceful
         # for each batch:
         # try 0: process the entire batch on the GPU
-        # try 1: split the batch into its components and process them one by one on the GPU. Skip the ones that don't work
+        # try 1: split the batch into its components and process them one by one on the GPU.
+        # try 2: for each component, if it doesn't work normally then try with gradient checkpointing. If that doesn't work, skip the component.
         # (never done: CPU processing, as it is too slow)
 
         batch_copy = batch.clone()
@@ -86,7 +87,7 @@ def train_epoch(logger, loader, model, optimizer, scheduler, batch_accumulation)
             _true, _pred, loss = _get_single_batch_gradients(model, batch, loader, batch_accumulation)
             get_gradients_succeeded = True
         except RuntimeError as e:
-            if _is_OOM_error(e, batch):
+            if _is_OOM_error(e):
                 logging.info(f"OOM error occurred on batch {batch}. Retrying after splitting batch.")
         
         # --- TRY 1 ---
@@ -107,8 +108,21 @@ def train_epoch(logger, loader, model, optimizer, scheduler, batch_accumulation)
                     _preds.append(_pred_batch)
                     losses.append(loss_batch)
                 except RuntimeError as e:
-                    if _is_OOM_error(e, batch):
-                        continue    # skip this element of the batch
+                    if _is_OOM_error(e):
+                        logging.info(f"OOM error occurred on element of batch. Retrying with gradient checkpointing.")
+                        # try again with gradient checkpointing
+                    try:
+                        cfg.share.gradient_checkpointing = True
+                        _true_batch, _pred_batch, loss_batch = _get_single_batch_gradients(model, Batch.from_data_list([data]), loader, batch_accumulation)
+                        _trues.append(_true_batch)
+                        _preds.append(_pred_batch)
+                        losses.append(loss_batch)
+                    except RuntimeError as e:
+                        if _is_OOM_error(e):
+                            pass    # skip this element of the batch
+                    finally:
+                        cfg.share.gradient_checkpointing = False
+                        
             
             # if all elements of the batch failed, skip the batch
             if len(_trues) == 0:
@@ -117,6 +131,7 @@ def train_epoch(logger, loader, model, optimizer, scheduler, batch_accumulation)
             else:
                 # still report how many elements of the batch failed
                 logging.info(f"OOM error occurred on {len(data_list) - len(_trues)} elements of batch.")
+                get_gradients_succeeded = True
 
             # otherwise, aggregate the _trues, _preds, and losses for logging purposes
             _true = torch.cat(_trues, dim=0)
