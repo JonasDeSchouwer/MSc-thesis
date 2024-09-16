@@ -24,13 +24,13 @@ function run_repeats {
         cfg_overrides="${cfg_overrides} gnn.head inductive_node dataset.format PyG-ShapeNet metric_best f1 wandb.project ShapeNet"
     # elif dataset is ModelNet10
     elif [[ $dataset == "ModelNet10" ]]; then
-        cfg_overrides="${cfg_overrides} gnn.head graph dataset.format PyG-ModelNet10OnDisk metric_best accuracy wandb.project ModelNet10 dataset.dir ${SCRATCH}/GraphGPS/datasets train.batch_size 8"
+        cfg_overrides="${cfg_overrides} gnn.head graph dataset.format PyG-ModelNet10OnDisk metric_best accuracy wandb.project ModelNet10 dataset.dir ${SCRATCH}/GraphGPS/datasets train.batch_size 8 optim.batch_accumulation 2"
     # elif dataset is ModelNet40
     elif [[ $dataset == "ModelNet40" ]]; then
-        cfg_overrides="${cfg_overrides} gnn.head graph dataset.format PyG-ModelNet40OnDisk metric_best accuracy wandb.project ModelNet40 dataset.dir ${SCRATCH}/GraphGPS/datasets train.batch_size 4"
+        cfg_overrides="${cfg_overrides} gnn.head graph dataset.format PyG-ModelNet40OnDisk metric_best accuracy wandb.project ModelNet40 dataset.dir ${SCRATCH}/GraphGPS/datasets train.batch_size 4 optim.batch_accumulation 4"
     # elif dataset is S3DIS
     elif [[ $dataset == "S3DIS" ]]; then
-        cfg_overrides="${cfg_overrides} gnn.head inductive_node dataset.format PyG-S3DISOnDisk metric_best f1 wandb.project S3DIS dataset.dir ${SCRATCH}/GraphGPS/datasets"
+        cfg_overrides="${cfg_overrides} gnn.head inductive_node dataset.format PyG-S3DISOnDisk metric_best f1 wandb.project S3DIS train.batch_size 4 optim.batch_accumulation 4"
     fi
 
     cfg_file="configs/PC/${method}.yaml"
@@ -40,23 +40,25 @@ function run_repeats {
         return 1
     fi
 
-    if [[ $dataset == "ModelNet"* || $dataset == "S3DIS" ]]; then
-        move_to_scratch="mkdir -p $SCRATCH/GraphGPS/datasets/${dataset}OnDisk; cp -r $DATA/GraphGPS/datasets/${dataset}OnDisk $SCRATCH/GraphGPS/datasets"
+    main="$DATA/.conda/envs/exphormer/bin/python -O main.py --cfg ${cfg_file}"
+    out_dir="results/PC/${dataset}"  # <-- Set the output dir.
+    common_params="out_dir ${out_dir} ${cfg_overrides}"
+
+    echo ""
+    echo "Run program: ${main}"
+    echo "  output dir: ${out_dir}"
+    
+    if [[ $dataset == "ModelNet"* ]]; then
+        move_to_scratch="mkdir -p ${SCRATCH}/GraphGPS/datasets/${dataset}OnDisk; cp -r $DATA/GraphGPS/datasets/${dataset}OnDisk $SCRATCH/GraphGPS/datasets"
         echo "Moving dataset to scratch"
     else
         move_to_scratch=""
     fi
 
-    main="$DATA/.conda/envs/exphormer/bin/python -O main.py --cfg ${cfg_file}"
-    out_dir="results/PC/${dataset}"  # <-- Set the output dir.
-    common_params="out_dir ${out_dir} ${cfg_overrides}"
-
-    echo "Run program: ${main}"
-    echo "  output dir: ${out_dir}"
 
     time=`date +%m.%d-%H:%M`
     # Run each repeat as a separate job
-    for SEED in {0..2}; do  # only 3 runs because my priority credits ran out
+    for SEED in 2; do  # only 3 runs because my priority credits ran out
         echo job name ${method}-${dataset}: seed ${SEED}
         echo ${main} --repeat 1 seed ${SEED} ${common_params}
 
@@ -77,8 +79,8 @@ EOT
 
 
 function run_gnn_baselines {
-    dataset = $1
-    for layers in 5 10 15; do
+    dataset=$1
+    for layers in 5 10; do
         run_repeats ${dataset} GCN-$layers
         run_repeats ${dataset} GINE-$layers
         run_repeats ${dataset} GAT-$layers
@@ -95,11 +97,9 @@ function run_transformer_baselines {
 }
 function run_kmip {
     dataset=$1
-    for lr in 0.0001 0.0005; do
-    for layers in 4 8 12; do
+    for layers in 4 8; do
     for kq_dim in 5 10; do
-    run_repeats ${dataset} GPS+SparseAttention-${layers}l-${kq_dim} "optim.base_lr $lr name_tag lr-${lr}"
-    done
+    run_repeats ${dataset} GPS+SparseAttention-${layers}l-${kq_dim}
     done
     done
 }
@@ -124,25 +124,48 @@ select yn in "Yes" "No"; do
 done
 
 ################################################################################
-##### GPS
+########################### Experiments to run #################################
 ################################################################################
 
-# Comment-out runs that you don't want to submit.
-cfg_dir="configs/Large-experiment"
+
+
+# --- S3DIS ---
+
 slurm_directive="
-#SBATCH --partition=short
-#SBATCH --time=12:00:00
+#SBATCH --clusters=htc
+#SBATCH --partition=medium
+#SBATCH --time=1-23:00:00
 #SBATCH --mem=60G
-#SBATCH --gres=gpu:1
-#SBATCH --constraint="gpu_mem:16GB,gpu_sku:V100"
+#SBATCH --gres='gpu:1'
 "
-
-
-run_all ShapeNet-Part
-
-run_all ModelNet10
-
-run_all ModelNet40
 
 run_all S3DIS
 
+
+
+
+# --- ModelNet10 ---
+
+# slurm_directive="
+# #SBATCH --clusters=htc
+# #SBATCH --partition=long
+# #SBATCH --time=10-00:00:00
+# #SBATCH --mem=60G
+# #SBATCH --gres=gpu:1
+# #SBATCH --constraint='gpu_mem:32GB'
+# "
+
+# run_repeats ModelNet10
+# run_transformer_baselines ModelNet10
+
+
+# slurm_directive="
+# #SBATCH --clusters=htc
+# #SBATCH --partition=medium
+# #SBATCH --time=2-00:00:00
+# #SBATCH --mem=60G
+# #SBATCH --gres=gpu:1
+# #SBATCH --constraint='gpu_mem:32GB'
+# "
+
+# run_gnn_baselines ModelNet10
