@@ -156,7 +156,7 @@ if __name__ == '__main__':
         if cfg.pretrained.dir:
             model = init_model_from_pretrained(
                 model, cfg.pretrained.dir, cfg.pretrained.freeze_main,
-                cfg.pretrained.reset_prediction_head
+                cfg.pretrained.reset_prediction_head, seed=cfg.pretrained.seed
             )
         optimizer = create_optimizer(model.parameters(),
                                      new_optimizer_config(cfg))

@@ -14,7 +14,10 @@ def set_cfg_pretrained(cfg):
     cfg.pretrained.dir = ""
 
     # Discard pretrained weights of the prediction head and reinitialize.
-    cfg.pretrained.reset_prediction_head = True
+    cfg.pretrained.reset_prediction_head = False
 
     # Freeze the main pretrained 'body' of the model, learning only the new head
     cfg.pretrained.freeze_main = False
+
+    # Which seed (index of run) to load the pretrained model from.
+    cfg.pretrained.seed = 0
