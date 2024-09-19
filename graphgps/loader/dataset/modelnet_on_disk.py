@@ -65,13 +65,13 @@ class ModelNetOnDisk(Dataset):
     }
 
     def __init__(self, root, name='10', train=True, transform=None,
-                 pre_transform=None, pre_filter=None, max_num_chunks_in_memory=2):
+                 pre_transform=None, pre_filter=None, max_num_chunks_in_memory=2, mock=False):
         assert name in ['10', '40']
         self.name = name
 
         self.CHUNK_SIZE = 300
-        self.DEBUG_MAX_2_TRAIN_CHUNKS = False
-        self.DEBUG_MAX_1_TEST_CHUNK = False
+        self.DEBUG_MAX_2_TRAIN_CHUNKS = mock
+        self.DEBUG_MAX_1_TEST_CHUNK = mock
 
         super().__init__(root, transform, pre_transform, pre_filter)
 

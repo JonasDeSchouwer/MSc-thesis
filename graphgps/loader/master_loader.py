@@ -229,6 +229,9 @@ def load_dataset_master(format, name, dataset_dir):
         elif pyg_dataset_id == 'ModelNet10OnDisk':
             dataset = preformat_ModelNetOnDisk(dataset_dir, name='10')
 
+        elif pyg_dataset_id == 'ModelNet10Mock':
+            dataset = preformat_ModelNetMock(dataset_dir, name='10')
+
         elif pyg_dataset_id == 'ModelNet40':
             dataset = preformat_ModelNet(dataset_dir, name='40')
 
@@ -856,7 +859,7 @@ def preformat_ModelNet(dataset_dir, name):
 
 def preformat_ModelNetOnDisk(dataset_dir, name):
     """
-    Load and preformat S3DIS dataset on disk.
+    Load and preformat ModelNet dataset on disk.
     
     Args:
         dataset_dir: path where to store the cached dataset
@@ -867,6 +870,31 @@ def preformat_ModelNetOnDisk(dataset_dir, name):
     if name not in ['10', '40']:
         raise ValueError(f"Unexpected subset choice for ModelNet dataset: {name}")
     dataset = ModelNetOnDisk(root=dataset_dir, name=name)
+    
+    # add 'pos' attribute to 'x' attribute
+    # not necessary because this is done inside the dataset class
+
+    # create k-NN graph from 'pos' attribute
+    # not necessary because this is done inside the dataset class
+
+    s_dict = dataset.get_idx_split()
+    dataset.split_idxs = [s_dict[s] for s in ['train', 'val', 'test']]
+
+    return dataset
+
+def preformat_ModelNetMock(dataset_dir, name):
+    """
+    Load and preformat mock ModelNet dataset on disk.
+    
+    Args:
+        dataset_dir: path where to store the cached dataset
+    
+    Returns:
+        PyG dataset object
+    """
+    if name not in ['10', '40']:
+        raise ValueError(f"Unexpected subset choice for ModelNet dataset: {name}")
+    dataset = ModelNetOnDisk(root=osp.join(dataset_dir, 'mock'), name=name, mock=True)
     
     # add 'pos' attribute to 'x' attribute
     # not necessary because this is done inside the dataset class

@@ -155,30 +155,99 @@ def train_epoch(logger, loader, model, optimizer, scheduler, batch_accumulation)
 
 
 @torch.no_grad()
+def _get_single_batch_predictions(model, batch, loader, split):
+    assert split in ['val', 'test']
+    batch.split = split
+    batch.to(torch.device(cfg.device))
+
+    if cfg.gnn.head == 'inductive_edge':
+        pred, true, extra_stats = model(batch)
+    else:
+        pred, true = model(batch)
+        extra_stats = {}
+    if cfg.dataset.name == 'ogbg-code2':
+        loss, pred_score = subtoken_cross_entropy(pred, true)
+        _true = true
+        _pred = pred_score
+    elif cfg.dataset.name == 'ogbn-arxiv':
+        index_split = loader.dataset.split_idx[split].to(torch.device(cfg.device))
+        loss, pred_score = arxiv_cross_entropy(pred, true, index_split)
+        _true = true[index_split].detach().to('cpu', non_blocking=True)
+        _pred = pred_score.detach().to('cpu', non_blocking=True)
+    else:
+        loss, pred_score = compute_loss(pred, true)
+        _true = true.detach().to('cpu', non_blocking=True)
+        _pred = pred_score.detach().to('cpu', non_blocking=True)
+
+    return _true, _pred, loss, extra_stats
+    
+
+
+@torch.no_grad()
 def eval_epoch(logger, loader, model, split='val'):
     model.eval()
     time_start = time.time()
     for batch in tqdm(loader):
-        batch.split = split
-        batch.to(torch.device(cfg.device))
-        if cfg.gnn.head == 'inductive_edge':
-            pred, true, extra_stats = model(batch)
-        else:
-            pred, true = model(batch)
+        
+        # we implement a system to make performance degradation due to OOM errors more graceful
+        # for each batch:
+        # try 0: process the entire batch on the GPU
+        # try 1: split the batch into its components and process them one by one on the GPU.
+        # try 2: for each component, if it doesn't work normally then try with gradient checkpointing. If that doesn't work, skip the component.
+        # (never done: CPU processing, as it is too slow)
+
+        batch_copy = batch.clone()
+        get_predictions_succeeded = False
+
+        # --- TRY 0 ---
+        try:
+            _true, _pred, loss, extra_stats = _get_single_batch_predictions(model, batch, loader, split)
+            get_predictions_succeeded = True
+        except RuntimeError as e:
+            if _is_OOM_error(e):
+                logging.info(f"OOM error occurred on batch {batch}. Retrying after splitting batch.")
+        
+        # --- TRY 1 ---
+        if not get_predictions_succeeded:
+            # because the model may have modified the batch
+            batch = batch_copy.clone()
+
+            # split the batch into its components
+            data_list = batch.to_data_list()
+
+            _trues = []
+            _preds = []
+            losses = []
+            extra_stats_list = []
+            for data in data_list:
+                try:
+                    _true_batch, _pred_batch, loss_batch, extra_stats_batch = _get_single_batch_predictions(model, Batch.from_data_list([data]), loader, split)
+                    _trues.append(_true_batch)
+                    _preds.append(_pred_batch)
+                    losses.append(loss_batch)
+                    extra_stats_list.append(extra_stats_batch)
+                except RuntimeError as e:
+                    if _is_OOM_error(e):
+                        # if OOM occurred, skip element
+                        continue
+
+            # if all elements of the batch failed, skip the batch
+            if len(_trues) == 0:
+                logging.info("OOM error occurred on all elements of batch. Skipping batch.")
+                continue
+            else:
+                # still report how many elements of the batch failed
+                logging.info(f"OOM error occurred on {len(data_list) - len(_trues)} elements of batch.")
+                get_predictions_succeeded = True
+
+            # otherwise, aggregate the _trues, _preds, losses, and extra_stats for logging purposes
+            _true = torch.cat(_trues, dim=0)
+            _pred = torch.cat(_preds, dim=0)
+            loss = torch.stack(losses).mean()
             extra_stats = {}
-        if cfg.dataset.name == 'ogbg-code2':
-            loss, pred_score = subtoken_cross_entropy(pred, true)
-            _true = true
-            _pred = pred_score
-        elif cfg.dataset.name == 'ogbn-arxiv':
-            index_split = loader.dataset.split_idx[split].to(torch.device(cfg.device))
-            loss, pred_score = arxiv_cross_entropy(pred, true, index_split)
-            _true = true[index_split].detach().to('cpu', non_blocking=True)
-            _pred = pred_score.detach().to('cpu', non_blocking=True)
-        else:
-            loss, pred_score = compute_loss(pred, true)
-            _true = true.detach().to('cpu', non_blocking=True)
-            _pred = pred_score.detach().to('cpu', non_blocking=True)
+            for k in extra_stats_list[0].keys():
+                raise NotImplementedError("Aggregating extra stats is not implemented yet.")
+
         logger.update_stats(true=_true,
                             pred=_pred,
                             loss=loss.detach().cpu().item(),
