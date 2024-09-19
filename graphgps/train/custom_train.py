@@ -33,7 +33,7 @@ def _is_OOM_error(e: RuntimeError):
         e: RuntimeError
         which_pass: str
     """
-    if "CUDA out of memory" in str(e):
+    if "CUDA out of memory" in str(e) or "[KeOps] Cuda error" in str(e):
         return True
     else:
         raise e

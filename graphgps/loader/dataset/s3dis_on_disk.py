@@ -4,6 +4,7 @@ import os.path as osp
 import shutil
 import time
 
+import math
 import torch
 import random
 from tqdm import tqdm
@@ -57,6 +58,8 @@ class S3DISOnDisk(Dataset):
         self.test_area = test_area
 
         self.CHUNK_SIZE = 300        # hard coded for now: number of graphs to save in one file
+        self.DEBUG_MAX_TTV_GRAPHS = None
+
 
         super().__init__(root, transform, pre_transform, pre_filter)
 
@@ -68,12 +71,13 @@ class S3DISOnDisk(Dataset):
 
         self.idx_split = torch.load(self.processed_paths[0])
         self.chunk_contents = torch.load(self.processed_paths[1])
-        self.graph_id_to_chunk_id = { graph_id: chunk_id for chunk_id, graph_ids in self.chunk_contents.items() for graph_id in graph_ids }
 
-        # assert that each value in self.chunk_contents is a contiguous range
-        for graph_ids in self.chunk_contents.values():
-            assert graph_ids == list(range(graph_ids[0], graph_ids[-1]+1))
-        self.chunk_offsets = { chunk_id: graph_ids[0] for chunk_id, graph_ids in self.chunk_contents.items() }
+        # for each graph id, store a tuple (chunk_id, idx_within_chunk)
+        self.graph_id_to_chunk_location = {
+            graph_id: (chunk_id, idx_within_chunk)
+            for chunk_id, graph_ids in self.chunk_contents.items()
+            for (idx_within_chunk, graph_id) in enumerate(graph_ids)
+        }
 
         self.slices = None
         self.is_on_disk_dataset = True
@@ -105,22 +109,19 @@ class S3DISOnDisk(Dataset):
         with open(self.raw_paths[1], 'r') as f:
             rooms = f.read().split('\n')[:-1]
 
+        # --- 1. decide which graphs go into which chunk ---
+
+        # dict that contains the graph ids of each file, where we give an id to each graph
+        file_contents = defaultdict(list)
+        # a dict that contains the 'offset' of each file, i.e. the lowest graph id in that file
+        file_offsets = {}
+        # lists of train & test graph ids
+        train_graph_ids = []
+        test_graph_ids = []
         test_area = f'Area_{self.test_area}'
 
-        # collect train and test graphs in a list, before saving them to disk
-        train_graphs_buffer = []
-        test_graphs_buffer = []
-
-        # a dict that maps a chunk number to a list of graph indices in that chunk
-        # 'test' is a special chunk that contains all the test graphs
-        self.chunk_contents = defaultdict(list)
-
-        # current chunk id to fill
-        current_train_chunk_id = 0
-
-        # only used to check if this is a test or a train graph
-        num_graphs_processed = 0
-        
+        logging.info("Scanning directory and assigning graphs to train/test sets...")
+        largest_graph_id_so_far = -1
         for filename in tqdm(filenames):
             f = h5py.File(osp.join(self.raw_dir, filename))
             xs = torch.from_numpy(f['data'][:])
@@ -128,91 +129,121 @@ class S3DISOnDisk(Dataset):
             f.close()
             assert xs.size(0) == ys.size(0)
 
-            for i in range(xs.size(0)):
-                # x: first 3 columns are positions, rest are other features (normals)
-                data = Data(x=xs[i], y=ys[i])
+            ids_in_this_file = list(range(largest_graph_id_so_far+1, largest_graph_id_so_far+1+xs.size(0)))
+            file_contents[filename] = (list(range(largest_graph_id_so_far+1, largest_graph_id_so_far+1+xs.size(0))))
+            file_offsets[filename] = largest_graph_id_so_far+1
+            largest_graph_id_so_far += xs.size(0)
 
-                if self.pre_filter is not None and not self.pre_filter(data):
-                    continue
-                # hardcoded extra pre-transform
-                # k=32 is chosen because it is the k for which PointViG (https://arxiv.org/pdf/2407.00921v1) performed best on S3DIS
-                data = generate_knn_graph_from_pos(data, k=32, distance_edge_attr=True, custom_pos=xs[i, :, :3])
-                if self.pre_transform is not None:
-                    data = self.pre_transform(data)
-
-                if test_area in rooms[num_graphs_processed]:
-                    test_graphs_buffer.append(data)
+            for i in ids_in_this_file:
+                if test_area in rooms[i]:
+                    test_graph_ids.append(i)
                 else:
-                    train_graphs_buffer.append(data)
+                    train_graph_ids.append(i)
 
-                num_graphs_processed += 1
+        # we will regularly use this quantity for sanity checks
+        total_num_graphs = len(train_graph_ids) + len(test_graph_ids)
+        assert total_num_graphs == largest_graph_id_so_far+1
+        assert total_num_graphs == sum([len(file_contents[filename]) for filename in filenames])
 
-                # if the buffer is full, save the graphs to disk
-                if len(train_graphs_buffer) >= self.CHUNK_SIZE:
-                    last_saved_train_graph_id = -1 \
-                        if current_train_chunk_id == 0 \
-                        else self.chunk_contents[f'train{current_train_chunk_id-1}'][-1]
-                    
-                    start = last_saved_train_graph_id+1
-                    end = last_saved_train_graph_id+len(train_graphs_buffer)
-                    logging.info(f"Saving graphs {start} to {end} to Chunk train{current_train_chunk_id}")
-                    torch.save(train_graphs_buffer, osp.join(self.processed_dir, f'train{current_train_chunk_id}.pt'))
-                    self.chunk_contents[f'train{current_train_chunk_id}'] = list(range(start, end+1))
-                    current_train_chunk_id += 1
-                    train_graphs_buffer = []
+        # create list of val graph ids of the same size as the test graph ids
+        random.shuffle(train_graph_ids)
+        random.shuffle(test_graph_ids)
+        val_graph_ids = train_graph_ids[:len(test_graph_ids)]
+        train_graph_ids = train_graph_ids[len(test_graph_ids):]
 
-            # if num_graphs_processed >= self.DEBUG_MAX_NUM_GRAPHS:
-            #     break
+        if self.DEBUG_MAX_TTV_GRAPHS is not None:
+            train_graph_ids = train_graph_ids[:self.DEBUG_MAX_TTV_GRAPHS]
+            test_graph_ids = test_graph_ids[:self.DEBUG_MAX_TTV_GRAPHS]
+            val_graph_ids = val_graph_ids[:self.DEBUG_MAX_TTV_GRAPHS]
+            total_num_graphs = len(train_graph_ids) + len(test_graph_ids) + len(val_graph_ids)
 
-        # save remaining train graphs to disk
-        last_saved_train_graph_id = -1 \
-            if current_train_chunk_id == 0 \
-            else self.chunk_contents[f'train{current_train_chunk_id-1}'][-1]
-        start = last_saved_train_graph_id+1
-        end = last_saved_train_graph_id+len(train_graphs_buffer)
-        logging.info(f"Saving graphs {start} to {end} to Chunk train{current_train_chunk_id}")
-        torch.save(train_graphs_buffer, osp.join(self.processed_dir, f'train{current_train_chunk_id}.pt'))
-        self.chunk_contents[f'train{current_train_chunk_id}'] = list(range(start, end+1))
-        current_train_chunk_id += 1
-        del train_graphs_buffer
+        print("num train graphs:", len(train_graph_ids))
+        print("num val graphs:", len(val_graph_ids))
+        print("num test graphs:", len(test_graph_ids))
 
-        # save the test chunk to disk
-        logging.info(f"Saving {len(test_graphs_buffer)} test graphs to Chunk test")
-        torch.save(test_graphs_buffer, osp.join(self.processed_dir, 'test.pt'))
-        self.chunk_contents['test'] = list(range(num_graphs_processed-len(test_graphs_buffer), num_graphs_processed))
-        del test_graphs_buffer
+        # a dict that maps a chunk number to a list of graph indices in that chunk
+        # 'train{id}' chunks contain training graphs, 'test{id}' chunks contains test graphs, 'val{id}' chunks contain validation graphs
+        self.chunk_contents = defaultdict(list)
+
+        # allocate chunks
+        num_train_chunks = math.ceil(len(train_graph_ids) / self.CHUNK_SIZE)
+        num_test_chunks = math.ceil(len(test_graph_ids) / self.CHUNK_SIZE)
+        num_val_chunks = math.ceil(len(val_graph_ids) / self.CHUNK_SIZE)
+        for i in range(num_train_chunks):
+            self.chunk_contents[f'train{i}'] = train_graph_ids[i*self.CHUNK_SIZE:(i+1)*self.CHUNK_SIZE]
+        for i in range(num_test_chunks):
+            self.chunk_contents[f'test{i}'] = test_graph_ids[i*self.CHUNK_SIZE:(i+1)*self.CHUNK_SIZE]
+        for i in range(num_val_chunks):
+            self.chunk_contents[f'val{i}'] = val_graph_ids[i*self.CHUNK_SIZE:(i+1)*self.CHUNK_SIZE]
+
+        assert total_num_graphs == sum([len(graph_indices) for graph_indices in self.chunk_contents.values()])
+
+
+        # --- 2. for each chunk, collect the graphs and save to disk ---
+
+        for chunk_id, chunk_graph_ids in tqdm(list(self.chunk_contents.items())):
+            # a dict {idx: graph} for all graphs in this chunk, where idx will determine the order
+            chunk_graphs = {}
+
+            for filename, file_graph_ids in file_contents.items():
+                # collect the tuples (chunk_pos, file_pos) of all graphs that are in both this chunk and this file
+                graphs_in_this_file = [
+                    (
+                        chunk_graph_ids.index(i),
+                        i-file_offsets[filename]
+                    )
+                    for i in file_graph_ids
+                    if i in chunk_graph_ids
+                ]
+
+                if len(graphs_in_this_file) == 0:
+                    continue
+
+                f = h5py.File(osp.join(self.raw_dir, filename))
+                xs = torch.from_numpy(f['data'][:])
+                ys = torch.from_numpy(f['label'][:]).to(torch.long)
+                f.close()
+                assert xs.size(0) == ys.size(0)
+
+                for chunk_pos, file_pos in graphs_in_this_file:
+                    # x: first 3 columns are positions, rest are other features (normals)
+                    data = Data(x=xs[file_pos], y=ys[file_pos])
+
+                    if self.pre_filter is not None and not self.pre_filter(data):
+                        continue
+                    # hardcoded extra pre-transform
+                    # k=32 is chosen because it is the k for which PointViG (https://arxiv.org/pdf/2407.00921v1) performed best on S3DIS
+                    data = generate_knn_graph_from_pos(data, k=32, distance_edge_attr=True, custom_pos=xs[file_pos, :, :3])
+                    if self.pre_transform is not None:
+                        data = self.pre_transform(data)
+
+                    chunk_graphs[chunk_pos] = data
+
+            # if everything went correctly, the chunk_graphs should now contain all graphs in this chunk, i.e. all indices from 0 to len(chunk_graphs)-1
+            assert set(chunk_graphs.keys()) == set(range(len(self.chunk_contents[chunk_id])))
+
+            # save the chunk to disk
+            data_list = [chunk_graphs[i] for i in range(len(chunk_graphs))]
+            torch.save(data_list, osp.join(self.processed_dir, f'{chunk_id}.pt'))
         
         # do sanity check and log the range of graph indices in each chunk
-        logging.info("self.chunk_contents.keys():", list(self.chunk_contents.keys()))
+        logging.info(f"self.chunk_contents.keys(): {list(self.chunk_contents.keys())}")
         for chunk_name, graph_indices in self.chunk_contents.items():
             if len(graph_indices) == 0:
                 logging.info(f"Chunk {chunk_name} is empty")
             elif len(graph_indices) == 1:
                 logging.info(f"Chunk {chunk_name} only has 1 graph: should only happen if this is the last training graph and segmenting the dataset was a bit unlucky")
             else:
-                logging.info(f"Chunk {chunk_name} contains graphs with indices {graph_indices[0]} to {graph_indices[-1]}")
+                logging.info(f"Chunk {chunk_name} contains graphs with indices {graph_indices}")
 
-
-        # shuffle the train_mask chunk wise, to retain fast data access but also shuffle the data
-        chunkwise_train_mask = [v for k, v in self.chunk_contents.items() if 'train' in k]
-        random.shuffle(chunkwise_train_mask)
-        
-        train_mask = sum(chunkwise_train_mask, start=[])
-        self.train_mask = torch.tensor(train_mask, dtype=torch.long)
-        test_mask = self.chunk_contents['test']
-        self.test_mask = torch.tensor(test_mask, dtype=torch.long)
-
-        # get a validation mask from the training set, of the same size as the test set
-        print("test_mask:", len(self.test_mask))
-        self.val_mask = self.train_mask[:len(self.test_mask)]
-        self.train_mask = self.train_mask[len(self.test_mask):]
+        self.train_mask = torch.tensor(train_graph_ids, dtype=torch.long)
+        self.test_mask = torch.tensor(test_graph_ids, dtype=torch.long)
+        self.val_mask = torch.tensor(val_graph_ids, dtype=torch.long)
         self.idx_split = {
             'train': self.train_mask,
             'val': self.val_mask,
             'test': self.test_mask,
         }
-        print("train_mask:", len(self.train_mask))
-        print("val_mask:", len(self.val_mask))
 
         torch.save(self.idx_split, self.processed_paths[0])
         torch.save(self.chunk_contents, self.processed_paths[1])
@@ -221,9 +252,6 @@ class S3DISOnDisk(Dataset):
         if not hasattr(self, 'idx_split'):
             self.idx_split = torch.load(self.processed_paths[0])
         return self.idx_split
-    
-    def _get_idx_within_chunk(self, graph_id: int, chunk_id: str) -> int:
-        return graph_id - self.chunk_offsets[chunk_id]
     
     def _get_chunk(self, chunk_id: str) -> list:
         if chunk_id in self.memory:
@@ -245,17 +273,16 @@ class S3DISOnDisk(Dataset):
     
     def get(self, idx: int) -> Data:
         # get the chunk that contains the graph with index idx
-        chunk_id = self.graph_id_to_chunk_id[idx]
+        chunk_id, idx_within_chunk = self.graph_id_to_chunk_location[idx]
 
         # get the chunk
         chunk = self._get_chunk(chunk_id)
 
         # get the graph within the chunk
-        idx_within_chunk = self._get_idx_within_chunk(idx, chunk_id)
         return chunk[idx_within_chunk]
 
     def len(self) -> int:
-        return len(self.graph_id_to_chunk_id)
+        return len(self.graph_id_to_chunk_location)
     
     def get_num_classes(self) -> int:
         return 13   # 12 semantic elements + 1 clutter class
