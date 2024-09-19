@@ -70,6 +70,13 @@ class SparseAttention(nn.Module):
         Returns:
             [**, num_heads, Nq, k]
         """
+
+        # Raise an error if the memory has almost run out
+        free_memory, _ = torch.cuda.mem_get_info()
+        if free_memory < 1024 * 1024 * 50: # 50 MB
+            raise RuntimeError("Memory almost full - aborting PyKeOps operation")
+
+
         # --- Compute the nearest k keys: [**, num_heads, N, k] ---
 
         # [**, num_heads, N, 1, kq_dim]

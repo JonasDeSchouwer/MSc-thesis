@@ -33,7 +33,8 @@ def _is_OOM_error(e: RuntimeError):
         e: RuntimeError
         which_pass: str
     """
-    if "CUDA out of memory" in str(e) or "[KeOps] Cuda error" in str(e):
+    if "CUDA out of memory" in str(e) or "[KeOps] Cuda error" in str(e) or str(e) == "Memory almost full - aborting PyKeOps operation":
+        torch.cuda.empty_cache()
         return True
     else:
         raise e
