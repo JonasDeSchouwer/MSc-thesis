@@ -29,6 +29,7 @@ from graphgps.loader.split_generator import (prepare_splits,
                                              set_dataset_splits)
 from graphgps.transform.posenc_stats import compute_posenc_stats
 from graphgps.transform.transforms import (pre_transform_in_memory,
+                                           pre_transform_on_disk,
                                            generate_splits, # not the same as split_generator above.
                                            typecast_x, concat_x_and_pos,
                                            clip_graphs_to_size, move_node_feat_to_x,
@@ -321,15 +322,30 @@ def load_dataset_master(format, name, dataset_dir):
         for j in range(cfg.prep.exp_count):
             start = time.perf_counter()
             logging.info(f"Adding expander edges (round {j}) ...")
-            pre_transform_in_memory(dataset,
-                                    partial(generate_random_expander,
-                                            degree = cfg.prep.exp_deg,
-                                            algorithm = cfg.prep.exp_algorithm,
-                                            rng = None,
-                                            max_num_iters = cfg.prep.exp_max_num_iters,
-                                            exp_index = j),
-                                    show_progress=True
-                                    )
+            if hasattr(dataset, 'is_on_disk_dataset') and dataset.is_on_disk_dataset:
+                pre_transform_on_disk(dataset,
+                                        partial(generate_random_expander,
+                                                degree = cfg.prep.exp_deg,
+                                                algorithm = cfg.prep.exp_algorithm,
+                                                rng = None,
+                                                max_num_iters = cfg.prep.exp_max_num_iters,
+                                                exp_index = j),
+                                        f'expander',
+                                        show_progress=True
+                                        )
+                dataset.transform_name = 'expander'
+                dataset.memory = {}
+                dataset.chunks_in_memory = []
+            else:
+                pre_transform_in_memory(dataset,
+                                        partial(generate_random_expander,
+                                                degree = cfg.prep.exp_deg,
+                                                algorithm = cfg.prep.exp_algorithm,
+                                                rng = None,
+                                                max_num_iters = cfg.prep.exp_max_num_iters,
+                                                exp_index = j),
+                                        show_progress=True
+                                        )
             elapsed = time.perf_counter() - start
             timestr = time.strftime('%H:%M:%S', time.gmtime(elapsed)) \
                       + f'{elapsed:.2f}'[-3:]

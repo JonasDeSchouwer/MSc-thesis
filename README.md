@@ -28,7 +28,7 @@ conda install pyg=2.0.4 -c pyg -c conda-forge
 
 # RDKit is required for OGB-LSC PCQM4Mv2 and datasets derived from it.
 # h5py is required for S3DIS  
-pip install fsspec rdkit torchmetrics performer-pytorch ogb tensorboardX wandb pykeops ipykernel h5py
+pip install fsspec rdkit torchmetrics performer-pytorch ogb tensorboardX wandb pykeops ipykernel h5py cupy-cuda12x
 
 conda clean --all
 ```

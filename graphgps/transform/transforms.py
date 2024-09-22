@@ -4,6 +4,8 @@ import torch
 import torch_geometric
 from torch_geometric.utils import subgraph
 from tqdm import tqdm
+import os.path as osp
+import time
 
 
 def pre_transform_in_memory(dataset, transform_func, show_progress=False):
@@ -35,6 +37,35 @@ def pre_transform_in_memory(dataset, transform_func, show_progress=False):
     dataset._indices = None
     dataset._data_list = data_list
     dataset.data, dataset.slices = dataset.collate(data_list)
+
+
+def pre_transform_on_disk(dataset, transform_func, transform_name, show_progress=False):
+    """Pre-transform already loaded PyG dataset object.
+
+    Apply transform function to a loaded PyG dataset object so that
+    the transformed result is persistent for the lifespan of the object.
+    The result is saved to disk, like what PyG's `pre_transform` would do.
+    """
+    if transform_func is None:
+        return dataset
+
+    for chunk_id in tqdm(list(dataset.chunk_contents.keys()),
+                        disable=not show_progress):
+        chunk_path = osp.join(dataset.processed_dir, f'{chunk_id}.pt')
+        transformed_chunk_path = osp.join(dataset.processed_dir, f'{chunk_id}_transformed_{transform_name}.pt')
+
+        logging.info(transformed_chunk_path)
+
+        if osp.exists(transformed_chunk_path):
+            continue
+
+        chunk = torch.load(chunk_path)
+
+        transformed_chunk = []
+        for graph in chunk:
+            transformed_chunk.append(transform_func(graph))
+        
+        torch.save(transformed_chunk, transformed_chunk_path)
 
 
 def generate_splits(data, g_split):

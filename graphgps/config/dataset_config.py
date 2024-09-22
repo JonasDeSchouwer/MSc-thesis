@@ -14,3 +14,5 @@ def dataset_cfg(cfg):
 
     # VOC/COCO Superpixels dataset version based on SLIC compactness parameter.
     cfg.dataset.slic_compactness = 10
+
+    cfg.dataset.debug = False

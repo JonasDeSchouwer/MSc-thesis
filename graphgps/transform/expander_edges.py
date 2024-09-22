@@ -4,6 +4,8 @@ import scipy as sp
 from typing import Any, Optional
 import torch
 from graphgps.transform.dist_transforms import laplacian_eigenv
+import time
+import logging
 
 
 def generate_random_regular_graph1(num_nodes, degree, rng=None):
@@ -139,7 +141,9 @@ def generate_random_expander(data, degree, algorithm, rng=None, max_num_iters=10
         senders, receivers = generate_random_graph_with_hamiltonian_cycles(num_nodes, degree, rng)
       else:
         raise ValueError('prep.exp_algorithm should be one of the Random-d or Hamiltonian')
-      [eig_val, _] = laplacian_eigenv(senders, receivers, k=1, n=num_nodes)
+      
+      [eig_val, _] = laplacian_eigenv(senders, receivers, k=1, n=num_nodes) # bottleneck
+
       if len(eig_val) == 0:
         print("num_nodes = %d, degree = %d, cur_iter = %d, mmax_iters = %d, senders = %d, receivers = %d" %(num_nodes, degree, cur_iter, max_num_iters, len(senders), len(receivers)))
         eig_val = 0

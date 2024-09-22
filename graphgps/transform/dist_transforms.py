@@ -1,3 +1,4 @@
+import logging
 import math
 import torch
 import numpy as np
@@ -9,6 +10,9 @@ from functools import partial
 from typing import Any, Optional
 from torch_geometric.data import Data
 from torch_geometric.utils import degree
+import time
+import cupy as cp
+import cupyx.scipy.sparse.linalg
 
 
 def bfs_shortest_path(source, G, max_n, cutoff):
@@ -158,10 +162,7 @@ def laplacian_matrix(senders: np.ndarray, receivers: np.ndarray,
     weights = 0*senders + 1
 
   if n is None:
-    n = senders.max()
-    if receivers.max() > n:
-      n = receivers.max()
-    n += 1
+    n = max(senders.max(), receivers.max()) + 1
 
   s = senders.tolist() + list(range(n))
   t = receivers.tolist() + list(range(n))
@@ -169,6 +170,41 @@ def laplacian_matrix(senders: np.ndarray, receivers: np.ndarray,
   adj = sp.sparse.csc_matrix((w, (s, t)), shape=(n, n))
   lap = adj * -1.0
   lap.setdiag(np.ravel(adj.sum(axis=0)))
+  return lap
+
+
+def laplacian_matrix_cupy(senders: cp.ndarray, receivers: cp.ndarray,
+        weights: Optional[cp.ndarray] = None, n: Optional[int] = None) -> Any:
+  """Creates the laplacian matrix for given edge list.
+  The edge list should be symmetric, and there should not be any isolated nodes.
+  Args:
+    senders: The sender nodes of the graph
+    receivers: The receiver nodes of the graph
+    weights: The weights of the edges
+  Returns:
+    A sparse Laplacian matrix
+  """
+
+  senders = cp.asarray(senders)
+  receivers = cp.asarray(receivers)
+
+  if weights is None:
+    weights = 0*senders + 1
+
+  if n is None:
+    n = cp.maximum(senders.max(), receivers.max()) + 1
+
+  s = cp.concatenate([senders, cp.arange(n)])
+  t = cp.concatenate([receivers, cp.arange(n)])
+  w = cp.concatenate([weights, cp.zeros(n)])
+  adj = cupyx.scipy.sparse.csc_matrix((w, (s, t)), shape=(n, n))
+  lap = - adj
+  # Manually compute the diagonal and create a diagonal matrix
+  diag_values = cp.ravel(adj.sum(axis=0))  # Diagonal values (sum of rows)
+  diag_matrix = cp.sparse.diags(diag_values)  # Create a diagonal matrix
+
+  # Compute the Laplacian matrix as -adj + diagonal_matrix
+  lap = -adj + diag_matrix
   return lap
   
 
@@ -191,24 +227,23 @@ def laplacian_eigenv(senders: np.ndarray,
     """
     m = senders.shape[0]
     if weights is None:
-        weights = np.ones(m)
+        weights = cp.ones(m)
 
     if n is None:
-      n = senders.max()
-      if receivers.max() > n:
-        n = receivers.max()
-      n += 1
+      n = max(senders.max(), receivers.max()) + 1
     
-    lap_mat = laplacian_matrix(senders, receivers, weights, n = n)
+    lap_mat = laplacian_matrix_cupy(senders, receivers, weights, n = n)
+
     # n = lap_mat.shape[0]
     k = min(n - 2, k + 1)
     # rows of eigenv correspond to graph nodes, cols correspond to eigenvalues
-    eigenvals, eigenvecs = sp.sparse.linalg.eigs(lap_mat, k=k, which='SM')
-    eigenvals = np.real(eigenvals)
-    eigenvecs = np.real(eigenvecs)
+    eigenvals, eigenvecs = cupyx.scipy.sparse.linalg.eigsh(lap_mat, k=k, which='SA')
+
+    eigenvals = cp.real(eigenvals)
+    eigenvecs = cp.real(eigenvecs)
 
     # sort eigenvectors in ascending order of eigenvalues
-    sorted_idx = np.argsort(eigenvals)
+    sorted_idx = cp.argsort(eigenvals)
     eigenvals = eigenvals[sorted_idx]
     eigenvecs = eigenvecs[:, sorted_idx]
 
@@ -216,7 +251,7 @@ def laplacian_eigenv(senders: np.ndarray,
 
     for i in range(0, k):
         # normalize the i^th eigenvector
-        eigenvecs[:, i] = eigenvecs[:, i] / np.sqrt((eigenvecs[:, i]**2).sum())
+        eigenvecs[:, i] = eigenvecs[:, i] / cp.sqrt((eigenvecs[:, i]**2).sum())
         if eigenvecs[:, i].var() <= 1e-7:
             constant_eigenvec_idx = i
 

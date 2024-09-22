@@ -18,6 +18,7 @@ from torch_geometric.data import (
 )
 
 import logging
+from torch_geometric.graphgym.config import cfg
 
 from graphgps.transform.transforms import generate_knn_graph_from_pos
 
@@ -58,7 +59,7 @@ class S3DISOnDisk(Dataset):
         self.test_area = test_area
 
         self.CHUNK_SIZE = 300        # hard coded for now: number of graphs to save in one file
-        self.DEBUG_MAX_TTV_GRAPHS = None
+        self.DEBUG = cfg.dataset.debug
 
 
         super().__init__(root, transform, pre_transform, pre_filter)
@@ -81,6 +82,7 @@ class S3DISOnDisk(Dataset):
 
         self.slices = None
         self.is_on_disk_dataset = True
+        self.transform_name = None
 
         self.data = Data()
 
@@ -145,17 +147,20 @@ class S3DISOnDisk(Dataset):
         assert total_num_graphs == largest_graph_id_so_far+1
         assert total_num_graphs == sum([len(file_contents[filename]) for filename in filenames])
 
-        # create list of val graph ids of the same size as the test graph ids
-        random.shuffle(train_graph_ids)
-        random.shuffle(test_graph_ids)
-        val_graph_ids = train_graph_ids[:len(test_graph_ids)]
-        train_graph_ids = train_graph_ids[len(test_graph_ids):]
-
-        if self.DEBUG_MAX_TTV_GRAPHS is not None:
-            train_graph_ids = train_graph_ids[:self.DEBUG_MAX_TTV_GRAPHS]
-            test_graph_ids = test_graph_ids[:self.DEBUG_MAX_TTV_GRAPHS]
-            val_graph_ids = val_graph_ids[:self.DEBUG_MAX_TTV_GRAPHS]
+        # if self.DEBUG is not None: only use a subset of the graphs, and make sure that their ids are {0,1,2,...}
+        if self.DEBUG:
+            split_size = int(self.CHUNK_SIZE * 1.2)
+            train_graph_ids = list(range(split_size))
+            test_graph_ids = list(range(split_size, 2*split_size))
+            val_graph_ids = list(range(2*split_size, 3*split_size))
             total_num_graphs = len(train_graph_ids) + len(test_graph_ids) + len(val_graph_ids)
+
+        else:
+            # create list of val graph ids of the same size as the test graph ids
+            random.shuffle(train_graph_ids)
+            random.shuffle(test_graph_ids)
+            val_graph_ids = train_graph_ids[:len(test_graph_ids)]
+            train_graph_ids = train_graph_ids[len(test_graph_ids):]
 
         print("num train graphs:", len(train_graph_ids))
         print("num val graphs:", len(val_graph_ids))
@@ -259,7 +264,10 @@ class S3DISOnDisk(Dataset):
         else:
             # load from disk
             begin = time.time()
-            chunk = torch.load(osp.join(self.processed_dir, f'{chunk_id}.pt'))
+            if self.transform_name is None:
+                chunk = torch.load(osp.join(self.processed_dir, f'{chunk_id}.pt'))
+            else:
+                chunk = torch.load(osp.join(self.processed_dir, f'{chunk_id}_transformed_{self.transform_name}.pt'))
             logging.info(f"Loading chunk {chunk_id} from disk took {time.time()-begin:.2f} seconds")
 
             # if the number of chunks in memory exceeds max_num_chunks_in_memory, the oldest chunk is removed
