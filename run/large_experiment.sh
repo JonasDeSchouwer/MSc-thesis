@@ -51,7 +51,7 @@ EOT
 
 
 function run_gnn_baselines {
-    dataset = $1
+    dataset=$1
     run_repeats ${dataset} GCN-4
     run_repeats ${dataset} GINE-4
     run_repeats ${dataset} GAT-4
