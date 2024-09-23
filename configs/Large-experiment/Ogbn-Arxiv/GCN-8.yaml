@@ -28,7 +28,7 @@ train:
   eval_period: 1
   ckpt_period: 100
 model:
-  type: custom_gnn
+  type: gnn
   loss_fun: cross_entropy
   edge_decoding: dot
   graph_pooling: add
@@ -37,12 +37,12 @@ gnn:
   layers_pre_mp: 1
   layers_mp: 8
   layers_post_mp: 1
-  dim_inner: 171
-  layer_type: gineconv
+  dim_inner: 239
+  layer_type: gcnconv
   batchnorm: True
   residual: True
   act: relu
-  dropout: 0.0
+  dropout: 0.3
   agg: sum
   normalize_adj: False
 optim:
@@ -50,7 +50,7 @@ optim:
   optimizer: adamW
   weight_decay: 0.0
   base_lr: 0.001
-  max_epoch: 2000
+  max_epoch: 600
   scheduler: reduce_on_plateau
   reduce_factor: 0.5
   schedule_patience: 10

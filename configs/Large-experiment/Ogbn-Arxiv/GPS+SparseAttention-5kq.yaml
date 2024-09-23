@@ -28,30 +28,42 @@ train:
   eval_period: 1
   ckpt_period: 100
 model:
-  type: gnn
+  type: GPSModel
   loss_fun: cross_entropy
   edge_decoding: dot
   graph_pooling: add
+gt:
+  layer_type: CustomGatedGCN+SparseAttention # some other options: Exphormer,CustomGatedGCN+Exphormer,  GINE+Exphormer, GINE, GINE__exp
+  layers: 4
+  n_heads: 4
+  dim_hidden: 104  # `gt.dim_hidden` must match `gnn.dim_inner`
+  dropout: 0.3
+  attn_dropout: 0.5
+  layer_norm: False
+  batch_norm: True
+  sparse:
+    k: 10
+    kq_dim: 5
+    val_dim: 26
+    head_agg: None
 gnn:
-  head: default
+  head: inductive_node
   layers_pre_mp: 1
-  layers_mp: 8
+  # layers_mp: 3
   layers_post_mp: 1
-  dim_inner: 239
-  layer_type: gcnconv
+  dim_inner: 104
+  layer_type: generalconv
+  stage_type: stack
   batchnorm: True
-  residual: True
   act: relu
-  dropout: 0.0
-  agg: sum
+  dropout: 0.3
+  agg: add
   normalize_adj: False
 optim:
   clip_grad_norm: True
   optimizer: adamW
-  weight_decay: 0.0
+  weight_decay: 1e-3
   base_lr: 0.001
-  max_epoch: 2000
-  scheduler: reduce_on_plateau
-  reduce_factor: 0.5
-  schedule_patience: 10
-  min_lr: 1e-5
+  max_epoch: 600
+  scheduler: cosine_with_warmup
+  num_warmup_epochs: 5

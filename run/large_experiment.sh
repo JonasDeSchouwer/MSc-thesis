@@ -50,14 +50,18 @@ EOT
 }
 
 
-function run_baselines {
+function run_gnn_baselines {
     dataset = $1
-    run_repeats ${dataset} GCN
-    run_repeats ${dataset} GINE
-    run_repeats ${dataset} GAT
-    run_repeats ${dataset} GatedGCN
+    run_repeats ${dataset} GCN-4
+    run_repeats ${dataset} GINE-4
+    run_repeats ${dataset} GAT-4
+    run_repeats ${dataset} GatedGCN-4
+    run_repeats ${dataset} GCN-8
+    run_repeats ${dataset} GINE-8
+    run_repeats ${dataset} GAT-8
+    run_repeats ${dataset} GatedGCN-8
 }
-function run_transformers {
+function run_transformer_baselines {
     dataset=$1
     run_repeats ${dataset} GPS+None
     run_repeats ${dataset} GPS+BigBird
@@ -66,10 +70,16 @@ function run_transformers {
     run_repeats ${dataset} Exphormer
     run_repeats ${dataset} GPS+SparseAttention
 }
+function run_kmip {
+    dataset=$1
+    run_repeats ${dataset} GPS+SparseAttention-5kq
+    run_repeats ${dataset} GPS+SparseAttention-10kq
+}
 function run_all {
     dataset=$1
-    run_baselines ${dataset}
-    run_transformers ${dataset}
+    run_gnn_baselines ${dataset}
+    run_transformer_baselines ${dataset}
+    run_kmip ${dataset}
 }
 
 
@@ -97,7 +107,8 @@ slurm_directive="
 "
 
 
-run_all Amazon-Computer
+# run_all Amazon-Computer
 
-run_all Ogbn-Arxiv
+run_gnn_baselines Ogbn-Arxiv
+run_kmip Ogbn-Arxiv
 
