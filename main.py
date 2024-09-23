@@ -27,6 +27,7 @@ from torch_geometric import seed_everything
 from graphgps.finetuning import load_pretrained_model_cfg, \
     init_model_from_pretrained
 from graphgps.logger import create_logger
+from graphgps.utils import my_create_loader
 
 
 def new_optimizer_config(cfg):
@@ -137,7 +138,7 @@ if __name__ == '__main__':
                      f"split_index={cfg.dataset.split_index}")
         logging.info(f"    Starting now: {datetime.datetime.now()}")
         # Set machine learning pipeline
-        loaders = create_loader()
+        loaders = my_create_loader()
         loggers = create_logger()
         # custom_train expects three loggers for 'train', 'valid' and 'test'.
         # GraphGym code creates one logger/loader for each of the 'train_mask' etc.

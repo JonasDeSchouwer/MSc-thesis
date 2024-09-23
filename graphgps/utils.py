@@ -5,7 +5,9 @@ import os
 import os.path as osp
 import numpy as np
 from torch_geometric.utils import remove_self_loops
+from torch_geometric.graphgym.config import cfg
 from torch_geometric.graphgym.utils.io import json_to_dict_list
+from torch_geometric.graphgym.loader import get_loader, load_dataset
 from torch_scatter import scatter
 
 from yacs.config import CfgNode
@@ -224,3 +226,101 @@ def report_epoch_times2(dir):
         # save the overall mean and std of the epoch times for this split in a new file 'time2.txt'
         with open(osp.join(agg_dir, split, "time2.txt"), "w") as f:
             f.write(f"{overall_epoch_time_mean} ± {overall_epoch_time_std}")
+
+
+# had to override this because the original graphgym function did not infer the dimensions correctly for on disk datasets
+def my_set_dataset_info(dataset):
+    r"""
+    Set global dataset information
+
+    Args:
+        dataset: PyG dataset object
+
+    """
+
+    is_on_disk_dataset = hasattr(dataset, 'is_on_disk_dataset') and dataset.is_on_disk_dataset
+    # get sample to infer dim_in and dim_out from
+    if is_on_disk_dataset:
+        sample = dataset[0]
+    else:
+        sample = dataset.data
+
+    # get dim_in and dim_out
+    try:
+        cfg.share.dim_in = sample.x.shape[1]
+    except Exception:
+        cfg.share.dim_in = 1
+    try:
+        if cfg.dataset.task_type == 'classification':
+            if is_on_disk_dataset:
+                cfg.share.dim_out = dataset.get_num_classes()
+            else:
+                cfg.share.dim_out = torch.unique(sample.y).shape[0]
+        else:
+            cfg.share.dim_out = sample.y.shape[1]
+    except Exception:
+        cfg.share.dim_out = 1
+
+    # count number of dataset splits
+    cfg.share.num_splits = 1
+    for key in dataset.data.keys:
+        if 'val' in key:
+            cfg.share.num_splits += 1
+            break
+    for key in dataset.data.keys:
+        if 'test' in key:
+            cfg.share.num_splits += 1
+            break
+
+# had to override this because the original graphgym function did not infer the dimensions correctly for on disk datasets
+def my_create_dataset():
+    r"""
+    Create dataset object
+
+    Returns: PyG dataset object
+
+    """
+    dataset = load_dataset()
+    my_set_dataset_info(dataset)
+
+    return dataset
+
+
+# had to override this because the original graphgym function did not infer the dimensions correctly for on disk datasets
+def my_create_loader():
+    """
+    Create data loader object
+
+    Returns: List of PyTorch data loaders
+
+    """
+    dataset = my_create_dataset()
+    # train loader
+    if cfg.dataset.task == 'graph':
+        id = dataset.data['train_graph_index']
+        loaders = [
+            get_loader(dataset[id], cfg.train.sampler, cfg.train.batch_size,
+                       shuffle=cfg.train.shuffle)
+        ]
+        delattr(dataset.data, 'train_graph_index')
+    else:
+        loaders = [
+            get_loader(dataset, cfg.train.sampler, cfg.train.batch_size,
+                       shuffle=True)
+        ]
+
+    # val and test loaders
+    for i in range(cfg.share.num_splits - 1):
+        if cfg.dataset.task == 'graph':
+            split_names = ['val_graph_index', 'test_graph_index']
+            id = dataset.data[split_names[i]]
+            loaders.append(
+                get_loader(dataset[id], cfg.val.sampler, cfg.train.batch_size,
+                           shuffle=False))
+            delattr(dataset.data, split_names[i])
+        else:
+            loaders.append(
+                get_loader(dataset, cfg.val.sampler, cfg.train.batch_size,
+                           shuffle=False))
+
+    return loaders
