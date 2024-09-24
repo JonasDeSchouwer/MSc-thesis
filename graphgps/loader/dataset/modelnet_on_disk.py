@@ -93,6 +93,7 @@ class ModelNetOnDisk(Dataset):
 
         self.slices = None
         self.is_on_disk_dataset = True
+        self.transform_name = None
 
         self.data = Data()
 
@@ -266,7 +267,10 @@ class ModelNetOnDisk(Dataset):
         else:
             # load from disk
             begin = time.time()
-            chunk = torch.load(osp.join(self.processed_dir, f'{chunk_id}.pt'))
+            if self.transform_name is None:
+                chunk = torch.load(osp.join(self.processed_dir, f'{chunk_id}.pt'))
+            else:
+                chunk = torch.load(osp.join(self.processed_dir, f'{chunk_id}_transformed_{self.transform_name}.pt'))
             logging.info(f"Loading chunk {chunk_id} from disk took {time.time()-begin:.2f} seconds")
 
             # if the number of chunks in memory exceeds max_num_chunks_in_memory, the oldest chunk is removed
