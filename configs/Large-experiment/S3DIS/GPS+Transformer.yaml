@@ -1,10 +1,10 @@
 out_dir: results
-metric_best: f1
+metric_best: mIoU
 wandb:
   use: True
-  project: ShapeNet-Part
+  project: S3DIS
 dataset:
-  format: PyG-ShapeNet
+  format: PyG-S3DISOnDisk
   # name: 
   task: graph # Even though S3DIS is a node-level task, this needs to be set as 'graph'. The reason why is known only to God, and maybe the authors of the code. I definitely don't.
   task_type: classification

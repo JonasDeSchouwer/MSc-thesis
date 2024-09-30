@@ -51,12 +51,6 @@ EOT
 
 function run_all {
     dataset=$1
-    slurm_directive="
-#SBATCH --partition=short
-#SBATCH --time=12:00:00
-#SBATCH --mem=60G
-#SBATCH --gres=gpu:1
-"
     for kq in 3 5 7 10 15 20 30; do
         run_repeats ${dataset} kMIP-kq${kq}
     done
@@ -80,6 +74,13 @@ done
 cfg_dir="configs/Influence-of-kq_dim"
 
 
+slurm_directive="
+#SBATCH --partition=short
+#SBATCH --time=12:00:00
+#SBATCH --mem=60G
+#SBATCH --gres=gpu:1
+"
+
 
 run_all Cifar10
 
@@ -88,5 +89,3 @@ run_all MalNet-Tiny
 run_all PascalVOC-SP
 
 run_all Peptides-Func
-
-run_all Cluster

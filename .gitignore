@@ -28,6 +28,10 @@ __pycache__/
 *.bak
 **.yaml:Zone.Identifier
 saved_tokens
+debug/
+run/modelnet
+run/s3dis
+run/shapenet
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

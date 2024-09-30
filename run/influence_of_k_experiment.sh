@@ -100,5 +100,3 @@ run_all MalNet-Tiny
 run_all PascalVOC-SP
 
 run_all Peptides-Func
-
-run_all Cluster

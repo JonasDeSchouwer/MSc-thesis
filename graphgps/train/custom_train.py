@@ -89,8 +89,10 @@ def train_epoch(logger, loader, model, optimizer, scheduler, batch_accumulation)
             get_gradients_succeeded = True
         except RuntimeError as e:
             if _is_OOM_error(e):
-                logging.info(f"OOM error occurred on batch {batch}. Retrying after splitting batch.")
-        
+                # logging.info(f"OOM error occurred on batch {batch}. Retrying after splitting batch.")
+                optimizer.zero_grad()
+                #continue    # just skip the batch
+
         # --- TRY 1 ---
         if not get_gradients_succeeded:
             # because the model may have modified the batch
@@ -110,8 +112,9 @@ def train_epoch(logger, loader, model, optimizer, scheduler, batch_accumulation)
                     losses.append(loss_batch)
                 except RuntimeError as e:
                     if _is_OOM_error(e):
-                        logging.info(f"OOM error occurred on element of batch. Retrying with gradient checkpointing.")
+                        # logging.info(f"OOM error occurred on element of batch. Retrying with gradient checkpointing.")
                         # try again with gradient checkpointing
+                        pass
                     try:
                         cfg.share.gradient_checkpointing = True
                         _true_batch, _pred_batch, loss_batch = _get_single_batch_gradients(model, Batch.from_data_list([data]), loader, batch_accumulation)
@@ -120,18 +123,19 @@ def train_epoch(logger, loader, model, optimizer, scheduler, batch_accumulation)
                         losses.append(loss_batch)
                     except RuntimeError as e:
                         if _is_OOM_error(e):
-                            pass    # skip this element of the batch
+                            #optimizer.zero_grad()    # skip this element of the batch
+                            pass
                     finally:
                         cfg.share.gradient_checkpointing = False
                         
             
             # if all elements of the batch failed, skip the batch
             if len(_trues) == 0:
-                logging.info("OOM error occurred on all elements of batch. Skipping batch.")
+                # logging.info("OOM error occurred on all elements of batch. Skipping batch.")
                 continue
             else:
                 # still report how many elements of the batch failed
-                logging.info(f"OOM error occurred on {len(data_list) - len(_trues)} elements of batch.")
+                # logging.info(f"OOM error occurred on {len(data_list) - len(_trues)} elements of batch.")
                 get_gradients_succeeded = True
 
             # otherwise, aggregate the _trues, _preds, and losses for logging purposes
@@ -206,7 +210,8 @@ def eval_epoch(logger, loader, model, split='val'):
             get_predictions_succeeded = True
         except RuntimeError as e:
             if _is_OOM_error(e):
-                logging.info(f"OOM error occurred on batch {batch}. Retrying after splitting batch.")
+                # logging.info(f"OOM error occurred on batch {batch}. Retrying after splitting batch.")
+                pass
         
         # --- TRY 1 ---
         if not get_predictions_succeeded:
