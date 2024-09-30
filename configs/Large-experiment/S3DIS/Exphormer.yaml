@@ -22,6 +22,7 @@ prep:
   add_edge_index: True # add real edges beside expander edges
   num_virt_node: 3
 train:
+  ckpt_best: True
   mode: custom
   batch_size: 8
   eval_period: 1

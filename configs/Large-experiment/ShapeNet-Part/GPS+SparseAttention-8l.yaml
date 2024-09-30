@@ -17,6 +17,7 @@ dataset:
   edge_encoder_name: DummyEdge
   edge_encoder_bn: False
 train:
+  ckpt_best: True
   mode: custom
   batch_size: 8
   eval_period: 1

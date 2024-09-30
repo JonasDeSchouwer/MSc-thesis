@@ -16,7 +16,7 @@ function run_repeats {
     cfg_overrides=$3
 
     # --- Do the desired cfg overrides here ---
-    cfg_overrides="${cfg_overrides} train.ckpt_best True"
+    cfg_overrides="${cfg_overrides}"
 
     # --- Set the dataset-specific cfg overrides ---
     # if dataset is ShapeNet-Part
@@ -24,16 +24,16 @@ function run_repeats {
         cfg_overrides="${cfg_overrides} gnn.head inductive_node dataset.format PyG-ShapeNet metric_best f1 wandb.project ShapeNet"
     # elif dataset is ModelNet10
     elif [[ $dataset == "ModelNet10" ]]; then
-        cfg_overrides="${cfg_overrides} gnn.head graph dataset.format PyG-ModelNet10OnDisk metric_best accuracy wandb.project ModelNet10 dataset.dir ${SCRATCH}/GraphGPS/datasets train.batch_size 8 optim.batch_accumulation 2"
+        cfg_overrides="${cfg_overrides} dataset.dir ${SCRATCH}/GraphGPS/datasets"
     # elif dataset is ModelNet40
     elif [[ $dataset == "ModelNet40" ]]; then
-        cfg_overrides="${cfg_overrides} gnn.head graph dataset.format PyG-ModelNet40OnDisk metric_best accuracy wandb.project ModelNet40 dataset.dir ${SCRATCH}/GraphGPS/datasets train.batch_size 4 optim.batch_accumulation 4"
+        cfg_overrides="${cfg_overrides} dataset.dir ${SCRATCH}/GraphGPS/datasets"
     # elif dataset is S3DIS
     elif [[ $dataset == "S3DIS" ]]; then
-        cfg_overrides="${cfg_overrides} gnn.head inductive_node dataset.format PyG-S3DISOnDisk metric_best f1 wandb.project S3DIS train.batch_size 4 optim.batch_accumulation 4"
+        cfg_overrides="${cfg_overrides} dataset.dir ${SCRATCH}/GraphGPS/datasets"
     fi
 
-    cfg_file="configs/PC/${method}.yaml"
+    cfg_file="configs/Large-experiment/${dataset}/${method}.yaml"
     if [[ ! -f "$cfg_file" ]]; then
         echo "WARNING: Config does not exist: $cfg_file"
         echo "SKIPPING!"
@@ -51,15 +51,18 @@ function run_repeats {
     if [[ $dataset == "ModelNet"* ]]; then
         move_to_scratch="mkdir -p ${SCRATCH}/GraphGPS/datasets/${dataset}OnDisk; cp -r $DATA/GraphGPS/datasets/${dataset}OnDisk $SCRATCH/GraphGPS/datasets"
         echo "Moving dataset to scratch"
+    elif [[ $dataset == "S3DIS" ]]; then
+        move_to_scratch="mkdir -p ${SCRATCH}/GraphGPS/datasets/S3DISOnDisk; cp $DATA/GraphGPS/datasets/S3DIS-temp/indoor3d_sem_seg_hdf5_data.zip $SCRATCH/GraphGPS/datasets/S3DISOnDisk"
+        echo "Moving dataset zip file to scratch"
     else
         move_to_scratch=""
     fi
 
-
     time=`date +%m.%d-%H:%M`
     # Run each repeat as a separate job
-    for SEED in 2; do  # only 3 runs because my priority credits ran out
+    for SEED in {0..2}; do  # only 3 runs because my priority credits ran out
         echo job name ${method}-${dataset}: seed ${SEED}
+        echo ${move_to_scratch}
         echo ${main} --repeat 1 seed ${SEED} ${common_params}
 
         sbatch <<EOT
@@ -80,26 +83,26 @@ EOT
 
 function run_gnn_baselines {
     dataset=$1
-    for layers in 5 10; do
-        run_repeats ${dataset} GCN-$layers
-        run_repeats ${dataset} GINE-$layers
-        run_repeats ${dataset} GAT-$layers
-        run_repeats ${dataset} GatedGCN-$layers
+    for layers in 5; do
+        run_repeats ${dataset} GCN-$layers-100K
+        run_repeats ${dataset} GINE-$layers-100K
+        run_repeats ${dataset} GAT-$layers-100K
+        run_repeats ${dataset} GatedGCN-$layers-100K
     done
 }
 function run_transformer_baselines {
     dataset=$1
-    run_repeats ${dataset} GPS+None
-    run_repeats ${dataset} GPS+BigBird
-    run_repeats ${dataset} GPS+Performer
-    run_repeats ${dataset} GPS+Transformer
-    run_repeats ${dataset} Exphormer
+    run_repeats ${dataset} GPS+None-100K
+    run_repeats ${dataset} GPS+BigBird-100K
+    run_repeats ${dataset} GPS+Performer-100K
+    run_repeats ${dataset} GPS+Transformer-100K
+    run_repeats ${dataset} Exphormer-100K
 }
 function run_kmip {
     dataset=$1
-    for layers in 4 8; do
-    for kq_dim in 5 10; do
-    run_repeats ${dataset} GPS+SparseAttention-${layers}l-${kq_dim}
+    for layers in 4; do
+    for kq_dim in 5; do
+    run_repeats ${dataset} GPS+SparseAttention-${layers}l-${kq_dim}-100K
     done
     done
 }
@@ -137,6 +140,7 @@ slurm_directive="
 #SBATCH --time=1-23:00:00
 #SBATCH --mem=60G
 #SBATCH --gres='gpu:1'
+#SBATCH --constraint='gpu_mem:32GB|gpu_mem:40GB|gpu_mem:48GB'
 "
 
 run_all S3DIS
@@ -146,26 +150,53 @@ run_all S3DIS
 
 # --- ModelNet10 ---
 
+# BACK OF THE ENVELOPE MATH:
+# BigBird-4l: 95h
+# Performer-4l: 24h
+# kMIP-4l-5kq: 33h
+# Exphormer-4l: 24h
+# GNNs: 13h
+
+slurm_directive="
+#SBATCH --clusters=htc
+#SBATCH --partition=medium
+#SBATCH --time=2-00:00:00
+#SBATCH --mem=60G
+#SBATCH --gres=gpu:1
+#SBATCH --constraint='gpu_mem:40GB|gpu_mem:48GB'
+"
+
+run_repeats ModelNet10 GatedGCN-10-100K
+run_gnn_baselines ModelNet10
+run_repeats ModelNet10 GPS+Performer-100K
+run_repeats ModelNet10 Exphormer-100K
+
+
+slurm_directive="
+#SBATCH --clusters=htc
+#SBATCH --partition=long
+#SBATCH --time=7-00:00:00
+#SBATCH --mem=60G
+#SBATCH --gres=gpu:1
+#SBATCH --constraint='gpu_mem:40GB|gpu_mem:48GB'
+"
+
+run_repeats ModelNet10 GPS+BigBird-100K
+run_kmip ModelNet10
+
+
+# for testing
+
 # slurm_directive="
 # #SBATCH --clusters=htc
-# #SBATCH --partition=long
-# #SBATCH --time=10-00:00:00
+# #SBATCH --partition=devel
+# #SBATCH --time=00:10:00
 # #SBATCH --mem=60G
 # #SBATCH --gres=gpu:1
-# #SBATCH --constraint='gpu_mem:32GB'
 # "
 
-# run_repeats ModelNet10
-# run_transformer_baselines ModelNet10
-
-
-# slurm_directive="
-# #SBATCH --clusters=htc
-# #SBATCH --partition=medium
-# #SBATCH --time=2-00:00:00
-# #SBATCH --mem=60G
-# #SBATCH --gres=gpu:1
-# #SBATCH --constraint='gpu_mem:32GB'
-# "
-
+# run_repeats ModelNet10 GPS+Performer-100K
+# run_repeats ModelNet10 Exphormer-100K
+# run_repeats ModelNet10 GPS+BigBird-100K
+# run_kmip ModelNet10
 # run_gnn_baselines ModelNet10

@@ -107,8 +107,10 @@ slurm_directive="
 "
 
 
-# run_all Amazon-Computer
+run_all Amazon-Computer
 
-run_gnn_baselines Ogbn-Arxiv
-run_kmip Ogbn-Arxiv
+# run_all Ogbn-Arxiv
 
+
+
+# for PC experiment, look at run/pc_experiment.sh
