@@ -1,7 +1,7 @@
 # Bringing $k$-MIP Attention to Graph Transformers
 
 
-In this work we introduce the k-MIP Graph Transformer, which is based on the $k$-Maximum Inner Product (k-MIP) attention mechanism and the [GraphGPS](https://github.com/rampasek/GraphGPS) framework.
+In this work, we introduce the k-MIP Graph Transformer, which is based on the $k$-Maximum Inner Product (k-MIP) attention mechanism and the [GraphGPS](https://github.com/rampasek/GraphGPS) framework.
 
 The k-MIP Graph Transformer is:
 
@@ -10,7 +10,16 @@ The k-MIP Graph Transformer is:
 - **Performant:** We have demonstrated results competitive with prominent graph Transformers across a variety of graph learning tasks, with graphs ranging from 20 to 500K nodes.
 - **Expressive:** We have established universal approximation guarantees for the k-MIP Graph Transformer, analogous to those previously established for full-attention Transformers and graph Transformers.
 
-The repository before you was used to run all integrated experiments.
+This repository was used to run the experiments in the following sections:
+
+- 6.1: Performance on Various Small-Graph Datasets
+- 6.4: Influence of $k$
+- 6.5: Influence of $d_{kq}$
+- 6.6: Scaling to Datasets with Larger Graphs
+- 6.7: An Approximation for Full Attention?
+- 6.8: Inspecting the Attention Graphs
+
+The efficiency experiments in the sections 6.2 and 6.3 were run with our other repository: Efficient-kMIP-Attention.
 
 
 ### Environment setup with coda
@@ -36,8 +45,9 @@ We highlight some important files and folders in the codebase.
 | File/Folder                          | Description                                                                 |
 |----------------------------|-----------------------------------------------------------------------------|
 | `configs`                            | Contains configuration files for different experiments and datasets.        |
-| `run`                                | Directory for scripts to execute various tasks and experiments. Importantly, this folder contains `small_experiment.sh`, `large_experiment.sh` and `pc_experiment.sh` that were used to batch experiments.             |
+| `run`                                | Directory for scripts to execute various tasks and experiments. Importantly, this directory contains `small_experiment.sh`, `large_experiment.sh` and `pc_experiment.sh` that were used to batch experiments.             |
 | `graphgps/layer/sparse_attention_layer.py` | Implementation of the sparse attention layer used in the k-MIP Graph Transformer. |
+| `plotting` | Directory that contains the notebooks used for plotting. Warning: they are messy. |
 
 
 ### Training the k-MIP Graph Transformer
