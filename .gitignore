@@ -32,6 +32,7 @@ debug/
 run/modelnet
 run/s3dis
 run/shapenet
+.history
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

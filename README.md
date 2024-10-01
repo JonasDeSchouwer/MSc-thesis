@@ -1,13 +1,5 @@
-# Exphormers: Sparse Transformers for Graphs
+# Bringing $k$-MIP Attention to Graph Transformers
 
-
-[![arXiv](https://img.shields.io/badge/arXiv-2303.06147-b31b1b.svg)](https://arxiv.org/abs/2303.06147)
-[![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/exphormer-sparse-transformers-for-graphs/graph-classification-on-cifar10-100k)](https://paperswithcode.com/sota/graph-classification-on-cifar10-100k?p=exphormer-sparse-transformers-for-graphs)
-[![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/exphormer-sparse-transformers-for-graphs/node-classification-on-coco-sp)](https://paperswithcode.com/sota/node-classification-on-coco-sp?p=exphormer-sparse-transformers-for-graphs)
-[![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/exphormer-sparse-transformers-for-graphs/graph-classification-on-malnet-tiny)](https://paperswithcode.com/sota/graph-classification-on-malnet-tiny?p=exphormer-sparse-transformers-for-graphs)
-[![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/exphormer-sparse-transformers-for-graphs/graph-classification-on-mnist)](https://paperswithcode.com/sota/graph-classification-on-mnist?p=exphormer-sparse-transformers-for-graphs)
-[![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/exphormer-sparse-transformers-for-graphs/node-classification-on-pascalvoc-sp-1)](https://paperswithcode.com/sota/node-classification-on-pascalvoc-sp-1?p=exphormer-sparse-transformers-for-graphs)
-[![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/exphormer-sparse-transformers-for-graphs/link-prediction-on-pcqm-contact)](https://paperswithcode.com/sota/link-prediction-on-pcqm-contact?p=exphormer-sparse-transformers-for-graphs)
 
 
 
