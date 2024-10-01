@@ -14,7 +14,7 @@ def set_cfg_wandb(cfg):
     cfg.wandb.use = False
 
     # Wandb entity name, should exist beforehand
-    cfg.wandb.entity = "jonasdeschouwer-university-of-oxford"
+    cfg.wandb.entity = ""
 
     # Wandb project name, will be created in your team if doesn't exist already
     cfg.wandb.project = "sparse-attention"
