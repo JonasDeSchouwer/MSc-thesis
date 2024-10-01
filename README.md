@@ -1,19 +1,23 @@
 # Bringing $k$-MIP Attention to Graph Transformers
 
 
+In this work we introduce the k-MIP Graph Transformer, which is based on the $k$-Maximum Inner Product (k-MIP) attention mechanism and the [GraphGPS](https://github.com/rampasek/GraphGPS) framework.
+
+The k-MIP Graph Transformer is:
+
+- **Efficient:** The k-MIP self-attention mechanism is two orders of magnitude faster than full attention and has a negligible memory footprint, allowing us to scale to graphs with up to 500K nodes.
+- **Versatile:** The k-MIP-GT incorporates edge features and supports node-level, graph-level, and edge-level tasks.
+- **Performant:** We have demonstrated results competitive with prominent graph Transformers across a variety of graph learning tasks, with graphs ranging from 20 to 500K nodes.
+- **Expressive:** We have established universal approximation guarantees for the k-MIP Graph Transformer, analogous to those previously established for full-attention Transformers and graph Transformers.
+
+The repository before you was used to run all integrated experiments.
 
 
-![Exphormer-viz](./Exphormers.png)
-
-
-In this work we introduce new sparse transformers for graph data, and use them in the [GraphGPS](https://github.com/rampasek/GraphGPS) framework. Our sparse transformers outperform BigBird and Performer in all cases we tried, which have been mainly designed for the natural language processing context; in many cases, we even get better results than full (dense attention) transformers. Our sparse transformer has three components: actual edges, expander graphs, and universal connectors or virtual nodes. We combine these components into a single sparse attention mechanism.
-
-
-### Python environment setup with Conda
+### Environment setup with coda
 
 ```bash
-conda create -n exphormer python=3.9
-conda activate exphormer
+conda create -n kmipgt python=3.9
+conda activate kmipgt
 
 conda install pytorch=1.10 torchvision torchaudio -c pytorch -c nvidia
 conda install pyg=2.0.4 -c pyg -c conda-forge
@@ -25,63 +29,37 @@ pip install fsspec rdkit torchmetrics performer-pytorch ogb tensorboardX wandb p
 conda clean --all
 ```
 
+### Navigating the codebase
 
-<!-- ```bash
-conda create -n exphormer python=3.9
-conda activate exphormer
+We highlight some important files and folders in the codebase.
 
-conda install openbabel -c conda-forge
-
-pip install numpy==1.26.4   # so that numpy 2.* is not installed
-pip install torch==1.10.1+cu113 torchvision==0.11.2+cu113 torchaudio==0.10.1 -f https://download.pytorch.org/whl/cu113/torch_stable.html
-pip install torch-scatter==2.0.9 torch-sparse==0.6.13 torch-cluster==1.6.0 torch-spline-conv==1.2.1 torch-geometric==2.0.4 -f https://data.pyg.org/whl/torch-1.10.0+cu113.html
-
-# RDKit is required for OGB-LSC PCQM4Mv2 and datasets derived from it.  
-pip install fsspec rdkit torchmetrics performer-pytorch ogb tensorboardX wandb pykeops ipykernel
-
-conda clean --all
-``` -->
+| File/Folder                          | Description                                                                 |
+|----------------------------|-----------------------------------------------------------------------------|
+| `configs`                            | Contains configuration files for different experiments and datasets.        |
+| `run`                                | Directory for scripts to execute various tasks and experiments. Importantly, this folder contains `small_experiment.sh`, `large_experiment.sh` and `pc_experiment.sh` that were used to batch experiments.             |
+| `graphgps/layer/sparse_attention_layer.py` | Implementation of the sparse attention layer used in the k-MIP Graph Transformer. |
 
 
-### Running Exphormer
+### Training the k-MIP Graph Transformer
+
+Training the k-MIP Graph Transformer proceeds as follows.
+
 ```bash
-conda activate exphormer
+conda activate kmipgt
 
-# Running Exphormer for LRGB Datasets
-python main.py --cfg configs/Exphormer_LRGB/peptides-struct-EX.yaml  wandb.use False
+# Running k-MIP-GT for Cifar10
+python main.py --cfg configs/Exphormer/cifar10/GPS+SparseAttention.yaml wandb.use False
 
-# Running Exphormer for Cifar10
-python main.py --cfg configs/Exphormer/cifar10.yaml  wandb.use False
+# Running k-MIP-GT for ShapeNet
+python main.py --cfg configs/Large-experiment/ShapeNet-Part/GPS+SparseAttention-8l.yaml wandb.use False
 ```
-You can also set your wandb settings and use wandb.
+You may override any config key by adding it as extra argument, like we have done above for `wandb.use`
 
-### Guide on configs files
 
-Most of the configs are shared with [GraphGPS](https://github.com/rampasek/GraphGPS) code. You can change the following parameters in the config files for different parameters and variants of the Exphormer:
-```
-prep:
-  exp: True  # Set True for using expander graphs, set False otherwise. 
-    # Alternatively you can set use_exp_edges to False.
-    # In this case expander graphs will be calculated but not used in the Exphormer. 
-  exp_deg: 5 # Set the degree of the expander graph.
-    # Please note that if you set this to d, the algorithm will use d permutations 
-    # or d Hamiltonian cycles, so the actual degree of the expander graph will be 2d
-  exp_algorithm: 'Random-d' # Options are ['Random-d', 'Random-d2', 'Hamiltonian].
-    # Default value is 'Random-d'
-  add_edge_index: True # Set True if you want to add real edges beside expander edges
-  num_virt_node: 1 # Set 0 for not using virtual nodes 
-    # otherwise set the number of virtual nodes you want to use.
-```
 
-## Citation
+<!-- ## Citation
 
 Our work can be cited using the following bibtex:
 ```bibtex
-@inproceedings{shirzad2023exphormer,
-  title={Exphormer: Sparse transformers for graphs},
-  author={Shirzad, Hamed and Velingker, Ameya and Venkatachalam, Balaji and Sutherland, Danica J and Sinop, Ali Kemal},
-  booktitle={International Conference on Machine Learning},
-  eprinttype={arXiv}, eprint={2303.06147},
-  year={2023}
-}
-```
+
+``` -->
