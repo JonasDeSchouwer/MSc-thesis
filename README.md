@@ -19,7 +19,7 @@ This repository was used to run the experiments in the following sections:
 - 6.7: An Approximation for Full Attention?
 - 6.8: Inspecting the Attention Graphs
 
-The efficiency experiments in the sections 6.2 and 6.3 were run with our other repository: Efficient-kMIP-Attention.
+The efficiency experiments in the sections 6.2 and 6.3 were run with our other repository: Efficient k-MIP Attention.
 
 
 ### Environment setup with coda
