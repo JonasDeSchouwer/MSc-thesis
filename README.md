@@ -1,7 +1,7 @@
-# Bringing $k$-MIP Attention to Graph Transformers
+# Bringing k-MIP Attention to Graph Transformers
 
 
-In this work, we introduce the k-MIP Graph Transformer, which is based on the $k$-Maximum Inner Product (k-MIP) attention mechanism and the [GraphGPS](https://github.com/rampasek/GraphGPS) framework.
+In this work, we introduce the k-MIP Graph Transformer, which is based on the k-Maximum Inner Product (k-MIP) attention mechanism and the [GraphGPS](https://github.com/rampasek/GraphGPS) framework.
 
 The k-MIP Graph Transformer is:
 
@@ -22,7 +22,7 @@ This repository was used to run the experiments in the following sections:
 The efficiency experiments in the sections 6.2 and 6.3 were run with our other repository: Efficient k-MIP Attention.
 
 
-### Environment setup with coda
+### Environment setup with conda
 
 ```bash
 conda create -n kmipgt python=3.9
