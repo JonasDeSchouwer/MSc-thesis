@@ -1,7 +1,7 @@
 # Bringing k-MIP Attention to Graph Transformers
 
 
-In this work, we introduce the k-MIP Graph Transformer, which is based on the k-Maximum Inner Product (k-MIP) attention mechanism and the [GraphGPS](https://github.com/rampasek/GraphGPS) framework.
+In this work, we introduce the k-MIP Graph Transformer, which is based on the k-Maximum Inner Product (k-MIP) attention mechanism and the [GraphGPS](https://github.com/rampasek/GraphGPS) framework. The complete report can be found [here](https://github.com/JonasDeSchouwer/MSc-thesis/blob/main/Thesis.pdf).
 
 The k-MIP Graph Transformer is:
 
